@@ -3,13 +3,14 @@ name: html-slide-builder
 description: |
   給定任何簡報需求或內容（主題、文字、提案、會議內容、活動資訊、報告、PDF、教材或口述需求），自動生成完整的 Reveal.js HTML 互動簡報並部署至 GitHub Pages。
 
-  提供四種可選的視覺/互動強化：
+  提供五種視覺/互動強化：
   1. AI 生成背景底圖（draw 技能，data-background-image）
   2. 扁平化圖標（僅在使用者明確要求時，以 draw 技能 + PIL 裁切去背生成）
-  3. Firebase 即時互動元件（文字雲、單選投票，Firestore 串接）
-  4. 滑桿視覺化演示（clip-path 揭露，適合前後對比內容）
+  3. CSS 微互動（卡片滑過發光／浮起、流程節點滑過輕微抖動）
+  4. Firebase 即時互動元件（文字雲、單選投票，Firestore 串接）
+  5. 滑桿視覺化演示（clip-path 揭露，適合前後對比內容）
 
-  預設為每一頁簡報套用 AI 生成底圖，並依內容分群重用底圖；在標題、段落標籤、重點卡與流程節點等合適位置使用 emoji。只有使用者明確要求圖標、生圖圖示、文字雲或視覺化滑桿時，才可加入對應功能。
+  預設為每一頁簡報套用 AI 生成底圖，並依內容分群重用底圖；在標題、段落標籤、重點卡與流程節點等合適位置使用 emoji；為卡片與流程節點加入節制的 CSS 微互動。預設不得加入點擊按鈕、點擊後動畫、或左下角的互動操作提示。只有使用者明確要求圖標、生圖圖示、可點擊效果、文字雲或視覺化滑桿時，才可加入對應功能。
 
   當使用者說「幫我做 HTML 簡報」「把這份內容轉成互動簡報」「做 Reveal.js 簡報」「做成投影片」「做一份提案／活動／課程簡報」，或提供任何內容並要求轉成簡報格式時，務必使用此 Skill。即使使用者未明確說「互動」或「HTML」，只要目的是產出可展示的簡報，也應觸發此 Skill。
 ---
@@ -50,6 +51,7 @@ description: |
 **功能標記說明**
 - [BG:<背景名稱>] 背景底圖（draw 技能，暗色風格；每頁必填，可重用）
 - emoji：預設用於合適的標題、標籤、卡片與流程節點
+- [HOVER] CSS 微互動：卡片滑過發光／浮起、流程節點滑過輕微抖動（預設啟用）
 - [ICON] 扁平化圖標（僅在使用者明確要求生圖圖標時）
 - [INTERACT:wordcloud] Firebase 即時文字雲（僅在使用者明確要求時）
 - [INTERACT:poll] Firebase 單選投票
@@ -60,11 +62,12 @@ description: |
 
 ### 功能標記的決策原則
 
-**預設規則：** 每一頁都必須帶有 `[BG:<背景名稱>]`，而且必須在輸出的 HTML 套用對應的 AI 生成底圖；相鄰或同一章節的投影片可以共用同一張底圖。預設以語意相符的 emoji 強化關鍵標籤與卡片，但不在每個句子或項目符號都堆疊 emoji。不得因簡報題材自行加入 `[ICON]`、`[INTERACT:wordcloud]` 或 `[VIZ]`。只有使用者明確提出生圖圖標、文字雲、蒐集即時文字回應、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
+**預設規則：** 每一頁都必須帶有 `[BG:<背景名稱>]`，而且必須在輸出的 HTML 套用對應的 AI 生成底圖；相鄰或同一章節的投影片可以共用同一張底圖。預設以語意相符的 emoji 強化關鍵標籤與卡片，但不在每個句子或項目符號都堆疊 emoji；適合的卡片與流程節點套用 `[HOVER]` 微互動。不得因簡報題材自行加入 `[ICON]`、點擊按鈕／點擊動畫、`[INTERACT:wordcloud]` 或 `[VIZ]`，也不得在左下角加入「滑過」「點按」等操作提示。只有使用者明確提出生圖圖標、可點擊效果、文字雲、蒐集即時文字回應、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
 
 | 標記 | 觸發條件 | 每份簡報目標數量 |
 |------|----------|-----------------|
 | [BG:<背景名稱>] | 每一頁；依章節、敘事轉折與視覺調性分群 | 每頁 1 個標記；通常每 3–5 頁共用 1 張底圖 |
+| [HOVER] | 重點卡、引用框、比較卡、行動卡與流程節點 | 預設啟用；每頁 1–4 個合適元素 |
 | [ICON] | 使用者明確要求生圖圖標、圖示組或不用 emoji 的客製圖示 | 預設 0 頁；有要求時 1–3 頁 |
 | [INTERACT:wordcloud] | 使用者明確要求文字雲或蒐集即時文字回應 | 預設 0 頁；有要求時 1 頁 |
 | [INTERACT:poll] | 概念確認、意見調查、前測/後測 | 0–1 頁 |
@@ -196,7 +199,47 @@ for i, name in enumerate(icons):
 
 ---
 
-## 5. 互動元件 [INTERACT]
+## 5. CSS 微互動 [HOVER]（預設啟用）
+
+在不改變簡報敘事、也不增加操作負擔的前提下，對適合的 HTML 元件加上滑過效果：
+
+- **適用元素**：重點卡、比較卡、引用框、行動卡，以及流程節點。
+- **卡片效果**：滑過時微幅上移、邊框變亮並產生青色光暈。
+- **流程節點效果**：滑過時輕微左右抖動，搭配短暫光暈；不得持續自動晃動。
+- **不要套用**：整張投影片、密集表格、正文段落、頁尾或純裝飾元素。
+- **無障礙**：提供 `prefers-reduced-motion` 降低動態效果；觸控裝置沒有 hover 時，內容仍須完全可讀。
+- **禁止預設**：不加 `<button>`、`onclick`、`addEventListener('click', ...)`、點擊後脈衝動畫，或左下角的「滑過／點按」操作說明。這些只在使用者明確要求可點擊互動時才可加入。
+
+建議 CSS：
+
+```css
+.interactive {
+  transition: transform .24s ease, box-shadow .24s ease,
+              border-color .24s ease, background .24s ease;
+}
+@media (hover: hover) {
+  .interactive:hover {
+    transform: translateY(-7px);
+    border-color: rgba(79,195,247,.92);
+    box-shadow: 0 0 0 1px rgba(79,195,247,.2),
+                0 0 29px rgba(79,195,247,.34),
+                0 18px 34px rgba(0,0,0,.32);
+  }
+  .flow .step:hover { animation: shake .38s ease-in-out; }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+```
+
+---
+
+## 6. 互動元件 [INTERACT]
 
 文字雲屬於明確選用功能；沒有使用者要求時，不讀取、不嵌入文字雲程式碼，也不建立對應 Firestore 集合。啟用互動元件時，只能使用使用者自己的 Firebase 設定。
 
@@ -210,7 +253,7 @@ for i, name in enumerate(icons):
 
 ---
 
-## 6. 視覺化演示 [VIZ]
+## 7. 視覺化演示 [VIZ]
 
 滑桿屬於明確選用功能；沒有使用者要求時，不生成滑桿 HTML、CSS 或 JavaScript。
 
@@ -239,7 +282,7 @@ document.getElementById('viz-slider').addEventListener('input', function() {
 
 ---
 
-## 7. 部署到 GitHub Pages
+## 8. 部署到 GitHub Pages
 
 ```bash
 cd "<專案目錄>"
@@ -272,9 +315,11 @@ gh api repos/<帳號>/<repo-name>/pages \
 Phase 0: 讀取簡報需求或內容
 Phase 1: 輸出大綱 → 等待確認 ← 必須停在這裡
 Phase 2: 生成 HTML 骨架
-Phase 3+4+5: 可平行（底圖生成 + 僅在要求圖標時才生成圖標）
-Phase 6: VIZ 寫入 HTML
-Phase 7: 確認一切完成後才 push
+Phase 3+4: 可平行（底圖生成 + 僅在要求圖標時才生成圖標）
+Phase 5: 為合適卡片與流程節點加入預設 CSS 微互動
+Phase 6: 僅在明確要求時，嵌入 Firebase 互動元件
+Phase 7: 僅在明確要求時，寫入 VIZ 滑桿
+Phase 8: 確認一切完成後才 push
 ```
 
 ---
