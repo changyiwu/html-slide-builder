@@ -75,7 +75,7 @@
       padding: 16px;
       text-align: center;
     }
-    .adv-card .adv-icon { margin-bottom: 8px; }
+    .adv-card .adv-icon { margin-bottom: 8px; font-size: 48px; line-height: 1; }
     .adv-card .adv-icon img {
       width: 56px; height: 56px; object-fit: contain;
       display: block; margin: 0 auto;
@@ -158,6 +158,7 @@
   <div class="slides">
 
     <!-- 投影片從這裡開始 -->
+    <!-- 每個 section 都必須設定 AI 生成底圖；同一張圖可供同一章節的多頁重用。 -->
 
     <!-- 封面範例 -->
     <section data-background-image="images/cover.png"
@@ -204,7 +205,9 @@
 
 ### 數字統計頁
 ```html
-<section>
+<section data-background-image="images/bg-data.png"
+         data-background-opacity="0.15"
+         data-background-size="cover">
   <h2>關鍵數字</h2>
   <div class="stat-row fragment">
     <div class="stat-card">
@@ -219,13 +222,15 @@
 </section>
 ```
 
-### 4 欄優勢卡（含圖標）
+### 4 欄優勢卡（預設使用 emoji）
 ```html
-<section>
+<section data-background-image="images/bg-benefits.png"
+         data-background-opacity="0.15"
+         data-background-size="cover">
   <h2>四大優勢</h2>
   <div class="adv-grid">
     <div class="adv-card fragment">
-      <div class="adv-icon"><img src="images/icon_a.png" alt="A"></div>
+      <div class="adv-icon" aria-hidden="true">🚀</div>
       <div class="adv-title">標題 A</div>
       <div class="adv-desc">說明文字...</div>
     </div>
@@ -241,9 +246,7 @@
          data-background-size="cover">
   <div class="end-slide">
     <div class="big">
-      <img src="images/icon_globe.png" alt=""
-           style="width:160px;height:160px;object-fit:contain;
-                  filter:drop-shadow(0 0 24px rgba(79,195,247,0.7));">
+      <span aria-hidden="true" style="font-size:140px;line-height:1;filter:drop-shadow(0 0 24px rgba(79,195,247,0.7));">🌍</span>
     </div>
     <h1 style="color:var(--accent2);"><!-- 收尾標語 --></h1>
     <p class="tagline"><!-- 引用句 --></p>

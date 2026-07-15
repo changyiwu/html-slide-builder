@@ -5,11 +5,11 @@ description: |
 
   提供四種可選的視覺/互動強化：
   1. AI 生成背景底圖（draw 技能，data-background-image）
-  2. 扁平化圖標（draw 技能 + PIL 裁切去背，取代 emoji）
+  2. 扁平化圖標（僅在使用者明確要求時，以 draw 技能 + PIL 裁切去背生成）
   3. Firebase 即時互動元件（文字雲、單選投票，Firestore 串接）
   4. 滑桿視覺化演示（clip-path 揭露，適合前後對比內容）
 
-  預設只依簡報需要規劃背景底圖與圖標；文字雲與視覺化滑桿必須由使用者明確要求才可加入。輸入出現「破冰」「比較」或「前後對比」本身，不代表已要求這兩項功能。
+  預設為每一頁簡報套用 AI 生成底圖，並依內容分群重用底圖；在標題、段落標籤、重點卡與流程節點等合適位置使用 emoji。只有使用者明確要求圖標、生圖圖示、文字雲或視覺化滑桿時，才可加入對應功能。
 
   當使用者說「幫我做 HTML 簡報」「把這份內容轉成互動簡報」「做 Reveal.js 簡報」「做成投影片」「做一份提案／活動／課程簡報」，或提供任何內容並要求轉成簡報格式時，務必使用此 Skill。即使使用者未明確說「互動」或「HTML」，只要目的是產出可展示的簡報，也應觸發此 Skill。
 ---
@@ -41,15 +41,16 @@ description: |
 
 | 頁碼 | 標題 | 內容摘要 | 功能標記 |
 |------|------|----------|----------|
-| 1    | 封面 | 簡報標題、提案人或活動資訊 | [BG] |
-| 2    | 背景與目的 | 說明此簡報要解決的問題或帶來的價值 | — |
-| 3    | 三大重點 | 並列說明三個核心概念 | [ICON] |
-| 4    | 前後對比 | A 方案與 B 方案的差異 | — |
+| 1    | 封面 | 簡報標題、提案人或活動資訊 | [BG:bg-cover] |
+| 2    | 背景與目的 | 說明此簡報要解決的問題或帶來的價值 | [BG:bg-context] |
+| 3    | 三大重點 | 以 ✨、🧭、📈 區分三個核心概念 | [BG:bg-context] |
+| 4    | 前後對比 | A 方案與 B 方案的差異 | [BG:bg-comparison] |
 ...
 
 **功能標記說明**
-- [BG] 背景底圖（draw 技能，暗色風格）
-- [ICON] 扁平化圖標（draw + PIL 去背）
+- [BG:<背景名稱>] 背景底圖（draw 技能，暗色風格；每頁必填，可重用）
+- emoji：預設用於合適的標題、標籤、卡片與流程節點
+- [ICON] 扁平化圖標（僅在使用者明確要求生圖圖標時）
 - [INTERACT:wordcloud] Firebase 即時文字雲（僅在使用者明確要求時）
 - [INTERACT:poll] Firebase 單選投票
 - [VIZ] 滑桿視覺化演示（clip-path；僅在使用者明確要求時）
@@ -59,12 +60,12 @@ description: |
 
 ### 功能標記的決策原則
 
-**預設規則：** 不得因簡報題材自行加入 `[INTERACT:wordcloud]` 或 `[VIZ]`。只有使用者明確提出文字雲、蒐集即時文字回應、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
+**預設規則：** 每一頁都必須帶有 `[BG:<背景名稱>]`，而且必須在輸出的 HTML 套用對應的 AI 生成底圖；相鄰或同一章節的投影片可以共用同一張底圖。預設以語意相符的 emoji 強化關鍵標籤與卡片，但不在每個句子或項目符號都堆疊 emoji。不得因簡報題材自行加入 `[ICON]`、`[INTERACT:wordcloud]` 或 `[VIZ]`。只有使用者明確提出生圖圖標、文字雲、蒐集即時文字回應、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
 
 | 標記 | 觸發條件 | 每份簡報目標數量 |
 |------|----------|-----------------|
-| [BG] | 封面、封底、章節轉換、高衝擊結論 | 3–5 頁 |
-| [ICON] | 頁面有 3–6 個並列項目（優缺點、步驟、特性） | 1–3 頁 |
+| [BG:<背景名稱>] | 每一頁；依章節、敘事轉折與視覺調性分群 | 每頁 1 個標記；通常每 3–5 頁共用 1 張底圖 |
+| [ICON] | 使用者明確要求生圖圖標、圖示組或不用 emoji 的客製圖示 | 預設 0 頁；有要求時 1–3 頁 |
 | [INTERACT:wordcloud] | 使用者明確要求文字雲或蒐集即時文字回應 | 預設 0 頁；有要求時 1 頁 |
 | [INTERACT:poll] | 概念確認、意見調查、前測/後測 | 0–1 頁 |
 | [VIZ] | 使用者明確要求滑桿或可拖曳的對比演示 | 預設 0 頁；有要求時 0–1 頁 |
@@ -96,15 +97,22 @@ description: |
 
 ---
 
-## 3. 生成背景底圖 [BG]
+## 3. 生成背景底圖 [BG]（每頁必填）
 
-對每個 [BG] 頁面呼叫 draw 技能，可平行執行：
+### 背景策略設定（預設啟用）
+
+- **套用範圍**：每一頁投影片都必須使用 AI 生成底圖；不能留下純色、未設定 `data-background-image` 的投影片。
+- **重用策略**：以敘事章節與視覺調性分群，通常每 3–5 頁共用一張。封面、章節轉換或結尾只有在視覺目的不同時才另生成。
+- **生成數量**：預設為 `ceil(投影片總數 / 4)` 張，最少 1 張、最多 6 張；可依實際章節數微調。先列出「背景名稱 → 套用頁碼 → prompt」對照表，再生成。
+- **套用方式**：同一個背景群組內的每個 `<section>` 都要寫入相同的 `data-background-image` 路徑。
+
+先依背景群組呼叫 draw 技能；不同群組可平行執行：
 
 ```bash
 python "{{DRAW_SKILL_PATH}}" \
   "<底圖 prompt>" \
   --size 1536x1024 --quality low \
-  --name <slide-slug> \
+  --name <background-slug> \
   --outdir "<專案目錄>/images"
 ```
 
@@ -117,20 +125,32 @@ python "{{DRAW_SKILL_PATH}}" \
 - 霓虹/發光效果，配合主題色
 - 例：AI 課程封面 → `"deep navy background, glowing neural network nodes and light trails, cinematic wide, no text, abstract tech art"`
 
-在 HTML section 加上：
+每一個 HTML section 都要加上：
 ```html
-<section data-background-image="images/<slug>.png"
-         data-background-opacity="0.3"
+<section data-background-image="images/<background-slug>.png"
+         data-background-opacity="0.15"
          data-background-size="cover">
 ```
 
-透明度建議：封面 0.3–0.4；一般頁 0.12–0.18。
+透明度建議：封面與結尾 0.3–0.4；一般頁 0.12–0.18。即使同一張底圖被重用，每頁仍須依內容調整透明度以維持文字可讀性。
 
 ---
 
-## 4. 圖標系統 [ICON]
+## 4. emoji 與圖標系統 [ICON]
 
-### 4-1 生成圖標總表（一次生成所有頁面需要的圖標）
+### 4-1 預設：使用 emoji
+
+在不影響專業語氣與可讀性的前提下，於下列位置使用 1 個語意相符的 emoji：
+
+- 投影片標題旁的主題提示（例如 `📊 關鍵數字`）
+- 重點卡、流程節點與段落標籤
+- 正向／警示／行動呼籲的短標籤（例如 `✅`、`⚠️`、`🚀`）
+
+不要把 emoji 用於每個句子、長段落或純裝飾；使用者要求無 emoji、極簡風格，或明確要求生圖圖標時，優先服從使用者。
+
+### 4-2 僅在明確要求時：生成圖標總表
+
+只有使用者明確要求圖標、生圖圖示、圖示組，或指定不用 emoji 時，才執行下列生成與去背流程。
 
 ```bash
 python "{{DRAW_SKILL_PATH}}" \
@@ -142,7 +162,7 @@ python "{{DRAW_SKILL_PATH}}" \
 
 用 Read 工具先確認圖標總表品質，再裁切。
 
-### 4-2 裁切 + 去背
+### 4-3 裁切 + 去背
 
 執行（複製 `scripts/remove_bg.py` 到專案目錄，或用內聯 Python）：
 
@@ -168,9 +188,9 @@ for i, name in enumerate(icons):
 
 然後執行去背（`scripts/remove_bg.py`）。
 
-### 4-3 嵌入 HTML
+### 4-4 嵌入 HTML
 
-- 用 `<img src="images/icon_name.png">` 取代 emoji
+- 在使用者明確要求的圖標頁，以 `<img src="images/icon_name.png">` 取代該位置的 emoji
 - adv-card 統一用 `border-top: 4px solid var(--accent2)` + `text-align: center`
 - 圖標 img 加 `filter: drop-shadow(0 0 10px rgba(79,195,247,0.6))`
 
@@ -252,7 +272,7 @@ gh api repos/<帳號>/<repo-name>/pages \
 Phase 0: 讀取簡報需求或內容
 Phase 1: 輸出大綱 → 等待確認 ← 必須停在這裡
 Phase 2: 生成 HTML 骨架
-Phase 3+4+5: 可平行（底圖生成 + 圖標生成同時跑）
+Phase 3+4+5: 可平行（底圖生成 + 僅在要求圖標時才生成圖標）
 Phase 6: VIZ 寫入 HTML
 Phase 7: 確認一切完成後才 push
 ```
