@@ -10,8 +10,20 @@ venv/
 
 # 環境設定（勿上傳 API Key）
 .env
+.env.*
+!.env.example
 *.key
 credentials.*
+
+# Agent 與工具的本機設定
+.claude/
+.codex/
+.agents/
+
+# 產出與相依套件
+output/
+node_modules/
+coverage/
 
 # macOS
 .DS_Store

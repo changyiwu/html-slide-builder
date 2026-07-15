@@ -1,6 +1,6 @@
 # 🎨 html-slide-builder — Claude Code Skill
 
-> 給定教材，自動生成完整的 **Reveal.js HTML 互動簡報** 並部署至 GitHub Pages。
+> 給定任何主題或內容，自動生成完整的 **Reveal.js HTML 互動簡報** 並部署至 GitHub Pages。
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-orange?logo=anthropic)](https://claude.ai/code)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -13,8 +13,8 @@
 |------|------|
 | 🖼 **AI 背景底圖** | 自動判斷哪些頁面需要底圖，呼叫 draw skill 生成霓虹暗色風格底圖 |
 | 🎯 **扁平化圖標** | 生成圖標總表 → PIL 裁切 → 亮度去背，取代 emoji |
-| 💬 **即時互動元件** | Firebase Firestore 串接的文字雲（wordcloud2.js）與單選投票 |
-| 🔀 **視覺化演示** | clip-path 滑桿揭露效果，適合「前後對比」「格式轉換」內容 |
+| 💬 **即時互動元件** | Firebase Firestore 串接的文字雲（wordcloud2.js）與單選投票；文字雲需明確指定才加入 |
+| 🔀 **視覺化演示** | clip-path 滑桿揭露效果；需明確指定才加入 |
 | 🚀 **一鍵部署** | 自動 git init → GitHub 公開 repo → GitHub Pages |
 
 ## 📺 效果展示
@@ -36,7 +36,7 @@
 | Draw Skill（gpt-image-2 生圖技能）| AI 生圖 | ⚠️ 底圖/圖標需要，需自行安裝並設定 OpenAI 金鑰 |
 | OpenAI API Key | gpt-image-2 生圖 | ⚠️ 底圖/圖標需要 |
 | [GitHub CLI (gh)](https://cli.github.com/) | GitHub Pages 部署 | ⚠️ 自動部署需要 |
-| Firebase 專案 | 互動元件資料庫 | ⚠️ 互動功能需要（可用共用示範） |
+| Firebase 專案 | 互動元件資料庫 | ⚠️ 互動功能需要（使用自己的專案） |
 
 ### 一鍵安裝
 
@@ -52,7 +52,7 @@ python install.py
 安裝腳本會：
 - ✅ 逐項檢查必要元件，列出缺少的項目
 - ✅ 詢問是否自動安裝 Pillow
-- ✅ 引導設定 Firebase（可選用共用示範專案或自訂）
+- ✅ 可選擇設定自己的 Firebase 專案
 - ✅ 將 Skill 複製到 `~/.claude/skills/html-slide-builder/`
 - ✅ 自動偵測 draw skill 路徑並注入設定
 
@@ -63,6 +63,12 @@ python install.py
 cp -r skill/ ~/.claude/skills/html-slide-builder/
 ```
 
+### 專案維護與輸出
+
+- Skill 原始碼位於 `skill/`；安裝後才會複製到本機的 Claude skills 目錄。
+- 每份生成的簡報請放在 `output/<簡報英文短名>/`，例如 `output/ai-course/`；`output/` 是本機產出，不納入版本控制。
+- `.env`、Firebase 服務帳戶憑證與其他 API 金鑰均不可提交。GitHub 或 Firebase 的建立、部署與安全規則調整，請在需要時另行明確執行。
+
 ---
 
 ## 🚀 使用方式
@@ -70,18 +76,20 @@ cp -r skill/ ~/.claude/skills/html-slide-builder/
 安裝後，在 Claude Code 對話中說：
 
 ```
-幫我把這份教材做成 HTML 互動簡報
+幫我做一份產品提案的 HTML 互動簡報
 
 # 或
 
-把以下課程大綱轉成 Reveal.js 互動簡報：
-[貼上你的教材內容]
+把以下活動企劃轉成 Reveal.js 互動簡報：
+[貼上你的內容]
+
+# 也支援教材、會議內容、報告或任意主題
 ```
 
 Claude 會自動：
-1. 分析教材，列出投影片大綱（含功能標記 `[BG][ICON][INTERACT][VIZ]`）
+1. 分析簡報需求與內容，列出投影片大綱（預設功能標記為 `[BG][ICON]`）
 2. **等你確認大綱後**才開始生成
-3. 平行執行底圖生成、圖標製作、互動元件嵌入
+3. 製作底圖與圖標；只有明確要求時才嵌入文字雲或視覺化滑桿
 4. 部署至 GitHub Pages 並回傳網址
 
 ---
@@ -102,16 +110,13 @@ html-slide-builder/
 
 ## ⚙️ Firebase 設定說明
 
-### 選項 A：共用示範專案（快速試用）
-安裝時選 A，使用 `teacherstudy-109ef` 示範專案。
-- 優點：不需申請，立即可用
-- 注意：資料為公開共用，**請勿在正式課程中使用**
+互動元件使用你自己的 Firebase 專案。安裝時可選擇輸入設定值；若略過，文字雲與投票的設定占位符會保留在安裝後的 Skill 中。
 
-### 選項 B：自訂 Firebase 專案（正式使用，推薦）
+### 設定自己的 Firebase 專案
 1. 至 [Firebase Console](https://console.firebase.google.com/) 建立專案
 2. 建立 Firestore 資料庫（測試模式）
 3. 在「專案設定 → 一般」取得 `firebaseConfig`
-4. 安裝時選 B 並輸入設定值
+4. 安裝時選擇設定 Firebase，並輸入各欄位
 
 ---
 
@@ -128,10 +133,12 @@ html-slide-builder/
 - 嵌入 HTML，取代 emoji，搭配 `drop-shadow` 發光效果
 
 ### 即時文字雲 [INTERACT:wordcloud]
+- **非預設功能**：只有明確要求文字雲或蒐集即時文字回應時才加入。
 - `wordcloud2.js` 渲染，字級隨頻率縮放，微旋轉 30%
 - Firebase `onSnapshot` 即時更新，毫秒級同步
 
 ### 滑桿視覺化 [VIZ]
+- **非預設功能**：只有明確要求滑桿或可拖曳的前後對比時才加入。
 - CSS `clip-path: inset(0 X% 0 0)` 控制揭露
 - 青色霓虹發光分隔線隨滑桿移動
 

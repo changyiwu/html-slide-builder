@@ -4,16 +4,16 @@
 
 ```js
 const firebaseConfig = {
-  apiKey: "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA",
-  authDomain: "teacherstudy-109ef.firebaseapp.com",
-  projectId: "teacherstudy-109ef",
-  storageBucket: "teacherstudy-109ef.firebasestorage.app",
-  messagingSenderId: "196599230156",
-  appId: "1:196599230156:web:cfe55d364df3ae1b9d5c69"
+  apiKey: "{{FIREBASE_API_KEY}}",
+  authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+  projectId: "{{FIREBASE_PROJECT_ID}}",
+  storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+  messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
+  appId: "{{FIREBASE_APP_ID}}"
 };
 ```
 
-Firebase 專案：`teacherstudy-109ef`
+請以自己的 Firebase 專案設定取代以上占位符；安裝程式也可以代為注入設定。
 SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
 
 **Firestore 集合命名規則：**
@@ -91,12 +91,12 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
   } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
   const firebaseConfig = {
-    apiKey: "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA",
-    authDomain: "teacherstudy-109ef.firebaseapp.com",
-    projectId: "teacherstudy-109ef",
-    storageBucket: "teacherstudy-109ef.firebasestorage.app",
-    messagingSenderId: "196599230156",
-    appId: "1:196599230156:web:cfe55d364df3ae1b9d5c69"
+    apiKey: "{{FIREBASE_API_KEY}}",
+    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+    projectId: "{{FIREBASE_PROJECT_ID}}",
+    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+    messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
+    appId: "{{FIREBASE_APP_ID}}"
   };
   const app = initializeApp(firebaseConfig);
   const fdb = getFirestore(app);
@@ -203,12 +203,12 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
   } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
   const firebaseConfig = {
-    apiKey: "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA",
-    authDomain: "teacherstudy-109ef.firebaseapp.com",
-    projectId: "teacherstudy-109ef",
-    storageBucket: "teacherstudy-109ef.firebasestorage.app",
-    messagingSenderId: "196599230156",
-    appId: "1:196599230156:web:cfe55d364df3ae1b9d5c69"
+    apiKey: "{{FIREBASE_API_KEY}}",
+    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+    projectId: "{{FIREBASE_PROJECT_ID}}",
+    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+    messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
+    appId: "{{FIREBASE_APP_ID}}"
   };
   const app = initializeApp(firebaseConfig);
   const fdb = getFirestore(app);

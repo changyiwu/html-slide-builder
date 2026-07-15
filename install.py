@@ -146,59 +146,43 @@ def check_requirements() -> dict:
 # 4. Firebase 設定
 # ──────────────────────────────────────────────
 
-DEMO_FIREBASE = {
-    "apiKey":            "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA",
-    "authDomain":        "teacherstudy-109ef.firebaseapp.com",
-    "projectId":         "teacherstudy-109ef",
-    "storageBucket":     "teacherstudy-109ef.firebasestorage.app",
-    "messagingSenderId": "196599230156",
-    "appId":             "1:196599230156:web:cfe55d364df3ae1b9d5c69",
-}
-
-
-def configure_firebase() -> dict:
+def configure_firebase() -> dict | None:
     head("【2】 Firebase 設定（互動元件：文字雲、投票）")
     print(f"""
   此 Skill 的互動元件需要 Firebase Firestore 資料庫。
-  你可以選擇：
-
-    {C}A{X}  使用共用示範專案（teacherstudy-109ef）
-       適合：快速試用、無需申請 Firebase 帳號
-       注意：資料為公開共用，正式課程請使用自己的專案
-
-    {C}B{X}  使用自己的 Firebase 專案（推薦正式使用）
-       需要：在 console.firebase.google.com 建立專案並取得設定值
+  文字雲與投票均為選用功能；如需使用，請提供自己的 Firebase 專案設定。
+  未設定時仍可安裝 Skill，只是不會啟用 Firebase 互動元件。
 """)
-    choice = input("  請選擇 [A/B]（直接 Enter = A）：").strip().upper() or "A"
+    configure = input("  是否現在設定自己的 Firebase？[y/N]：").strip().lower()
+    if configure != "y":
+        info("略過 Firebase 設定；互動元件將保留設定占位符")
+        return None
 
-    if choice == "B":
-        print(f"\n  請至 Firebase Console → 專案設定 → 應用程式，複製 firebaseConfig 各欄位：\n")
-        config = {}
-        config["apiKey"]            = input("  apiKey：").strip()
-        config["authDomain"]        = input("  authDomain：").strip()
-        config["projectId"]         = input("  projectId：").strip()
-        config["storageBucket"]     = input("  storageBucket：").strip()
-        config["messagingSenderId"] = input("  messagingSenderId：").strip()
-        config["appId"]             = input("  appId：").strip()
-        ok("已儲存自訂 Firebase 設定")
-        return config
-    else:
-        ok("使用共用示範 Firebase 專案（teacherstudy-109ef）")
-        return DEMO_FIREBASE
+    print(f"\n  請至 Firebase Console → 專案設定 → 應用程式，複製 firebaseConfig 各欄位：\n")
+    config = {}
+    config["apiKey"]            = input("  apiKey：").strip()
+    config["authDomain"]        = input("  authDomain：").strip()
+    config["projectId"]         = input("  projectId：").strip()
+    config["storageBucket"]     = input("  storageBucket：").strip()
+    config["messagingSenderId"] = input("  messagingSenderId：").strip()
+    config["appId"]             = input("  appId：").strip()
+    if not all(config.values()):
+        warn("Firebase 設定不完整；互動元件將保留設定占位符")
+        return None
+    ok("已儲存自訂 Firebase 設定")
+    return config
 
 
 def inject_firebase_config(firebase_config_path: Path, fb: dict):
     """將 Firebase 設定注入 firebase-config.md"""
     content = firebase_config_path.read_text(encoding="utf-8")
-    # 注意：較長/較完整的字串必須先替換，子字串（projectId、messagingSenderId）放最後，
-    # 否則會誤傷尚未替換的 authDomain / storageBucket / appId。
     replacements = {
-        "AIzaSyAYQhNavPSce17XtvDC5xnXyl9iUhW9KjA": fb["apiKey"],
-        "teacherstudy-109ef.firebaseapp.com":        fb["authDomain"],
-        "teacherstudy-109ef.firebasestorage.app":    fb["storageBucket"],
-        "1:196599230156:web:cfe55d364df3ae1b9d5c69": fb["appId"],
-        "teacherstudy-109ef":                        fb["projectId"],
-        "196599230156":                              fb["messagingSenderId"],
+        "{{FIREBASE_API_KEY}}":              fb["apiKey"],
+        "{{FIREBASE_AUTH_DOMAIN}}":          fb["authDomain"],
+        "{{FIREBASE_PROJECT_ID}}":           fb["projectId"],
+        "{{FIREBASE_STORAGE_BUCKET}}":       fb["storageBucket"],
+        "{{FIREBASE_MESSAGING_SENDER_ID}}":  fb["messagingSenderId"],
+        "{{FIREBASE_APP_ID}}":               fb["appId"],
     }
     for old, new in replacements.items():
         content = content.replace(old, new)
@@ -221,7 +205,7 @@ def inject_draw_path(skill_md_path: Path, draw_path: str | None):
 # 6. 安裝
 # ──────────────────────────────────────────────
 
-def install_skill(skills_dir: Path, fb: dict, draw_path: str | None):
+def install_skill(skills_dir: Path, fb: dict | None, draw_path: str | None):
     head("【3】 安裝 Skill")
 
     src = Path(__file__).parent / "skill"
@@ -240,9 +224,11 @@ def install_skill(skills_dir: Path, fb: dict, draw_path: str | None):
 
     # 注入 Firebase 設定
     fb_cfg = dst / "references" / "firebase-config.md"
-    if fb_cfg.exists():
+    if fb and fb_cfg.exists():
         inject_firebase_config(fb_cfg, fb)
         ok("Firebase 設定已注入")
+    elif fb_cfg.exists():
+        info("未設定 Firebase；互動元件設定占位符已保留")
 
     # 注入 draw.py 路徑
     skill_md = dst / "SKILL.md"
