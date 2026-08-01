@@ -83,7 +83,8 @@ cp -r skill/ ~/.gemini/config/skills/html-slide-builder/
 
 ### 專案維護與輸出
 
-- Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要重跑 `python install.py`（或用 sync-skills 技能）才會生效。
+- Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要**重跑 `python install.py`** 才會生效。
+- ⚠️ **不要用 sync-skills（純位元組複製的技能同步工具）同步這個 Skill。**安裝副本的 `SKILL.md` 已被 `install.py` 注入實際路徑，源檔留的是 `{{DRAW_SKILL_PATH}}`／`{{DRAW_SKILL_NAME}}` 占位符；位元組複製會把占位符蓋回四個副本、生圖指令直接失效，而且 hash 比對會顯示「全部一致」，完全看不出來。這個 Skill 的更新路徑只有 `install.py` 一條。
 - 每份生成的簡報請放在 `output/<簡報英文短名>/`，例如 `output/ai-course/`；`output/` 是本機產出，不納入版本控制。
 - `.env`、Firebase 服務帳戶憑證與其他 API 金鑰均不可提交。GitHub 或 Firebase 的建立、部署與安全規則調整，請在需要時另行明確執行。
 

@@ -49,6 +49,7 @@ html-slide-builder/
 
 - 任何 Agent、任何電腦：**開工先讀 `handoff.md`，收工必更新 `handoff.md`**
 - 修改共用檔案前先讀最新內容，避免覆蓋其他 Agent 的變更
+- **`skill/` 改完只能用 `python install.py` 更新安裝副本，不可用 sync-skills 同步**：副本的 `SKILL.md` 已注入各 Agent 的生圖腳本路徑，源檔留的是 `{{DRAW_SKILL_PATH}}`／`{{DRAW_SKILL_NAME}}` 占位符；位元組複製會把占位符蓋回去、生圖失效，且 hash 比對仍顯示一致，看不出來
 - 所有回應與文件使用繁體中文
 - 保留既有 README、Skill 指令、授權資訊與專案歷史；變更時採**最小範圍修改**
 - 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰、服務帳戶憑證或 Firebase 私密設定提交至 Git
