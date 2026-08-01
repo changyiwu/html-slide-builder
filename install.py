@@ -39,9 +39,6 @@ AGENTS = [
     ("Antigravity", Path.home() / ".gemini" / "config",   Path.home() / ".gemini" / "config" / "skills"),
 ]
 
-# 該 Agent 的生圖技能沒有 CLI 腳本時（例如 Codex 用內建 Image Gen），填進 SKILL.md 的字樣
-NO_DRAW_SCRIPT = "（此 Agent 的生圖技能沒有 CLI 腳本，請改用下方的自然語言方式）"
-
 # 複製時要排除的本機垃圾（`skill/scripts/__pycache__` 跑過 remove_bg.py 就會生出來）
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo", ".DS_Store", "desktop.ini", "Thumbs.db")
 
@@ -86,6 +83,9 @@ def find_draw_skill(skills_dir: Path):
     各家安裝名不同（claude-draw / codex-draw / opencode-draw / antigravity-draw），
     所以用「名稱含 draw」比對，再從裡面找生圖腳本。
     回傳 (技能名, 腳本路徑)；技能存在但沒有腳本時腳本為 None。
+
+    注意：這裡只用來**診斷回報**，不再把結果寫進 SKILL.md。
+    SKILL.md 改為執行時自行解析（同一套規則），所以四家副本才能是同一份 bytes。
     """
     if not skills_dir.exists():
         return None, None
@@ -236,21 +236,7 @@ def inject_firebase_config(firebase_config_path: Path, fb: dict):
 
 
 # ──────────────────────────────────────────────
-# 5. 注入該 Agent 的生圖技能名稱與腳本路徑到 SKILL.md
-# ──────────────────────────────────────────────
-
-def inject_draw_info(skill_md_path: Path, draw_name, draw_path):
-    content = skill_md_path.read_text(encoding="utf-8")
-    content = content.replace("{{DRAW_SKILL_NAME}}", draw_name or "draw")
-    content = content.replace(
-        "{{DRAW_SKILL_PATH}}",
-        str(draw_path) if draw_path else NO_DRAW_SCRIPT,
-    )
-    skill_md_path.write_text(content, encoding="utf-8")
-
-
-# ──────────────────────────────────────────────
-# 6. 選擇要安裝到哪些 Agent
+# 5. 選擇要安裝到哪些 Agent
 # ──────────────────────────────────────────────
 
 def choose_targets(agents: list) -> list:
@@ -318,9 +304,7 @@ def install_one(agent: dict, fb, overwrite_all):
     if fb and fb_cfg.exists():
         inject_firebase_config(fb_cfg, fb)
 
-    # 注入該 Agent 自己的生圖技能資訊
-    inject_draw_info(dst / "SKILL.md", agent.get("draw_name"), agent.get("draw_path"))
-
+    # 生圖技能不再注入——SKILL.md 執行時自行解析，四家副本因此是同一份 bytes
     detail = agent.get("draw_name") or "無生圖技能"
     if agent.get("draw_name") and not agent.get("draw_path"):
         detail += "（自然語言生圖）"

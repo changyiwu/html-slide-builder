@@ -49,7 +49,7 @@ html-slide-builder/
 
 - 任何 Agent、任何電腦：**開工先讀 `handoff.md`，收工必更新 `handoff.md`**
 - 修改共用檔案前先讀最新內容，避免覆蓋其他 Agent 的變更
-- **`skill/` 改完只能用 `python install.py` 更新安裝副本，不可用 sync-skills 同步**：副本的 `SKILL.md` 已注入各 Agent 的生圖腳本路徑，源檔留的是 `{{DRAW_SKILL_PATH}}`／`{{DRAW_SKILL_NAME}}` 占位符；位元組複製會把占位符蓋回去、生圖失效，且 hash 比對仍顯示一致，看不出來
+- **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes。**但若有設定 Firebase**，`install.py` 會把金鑰注入副本的 `references/firebase-config.md`，那份就不等於源檔了——這種情況只能用 `install.py`，位元組複製會洗掉金鑰
 - 所有回應與文件使用繁體中文
 - 保留既有 README、Skill 指令、授權資訊與專案歷史；變更時採**最小範圍修改**
 - 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰、服務帳戶憑證或 Firebase 私密設定提交至 Git

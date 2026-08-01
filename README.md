@@ -79,12 +79,13 @@ cp -r skill/ ~/.config/opencode/skills/html-slide-builder/
 cp -r skill/ ~/.gemini/config/skills/html-slide-builder/
 ```
 
-手動安裝不會替換 `SKILL.md` 裡的 `{{DRAW_SKILL_PATH}}` 與 `{{DRAW_SKILL_NAME}}` 占位符，請自行填入該 Agent 的生圖技能名稱與腳本路徑。
+手動安裝也可以——`SKILL.md` 會在執行時自行解析該 Agent 的生圖技能（找技能目錄下名稱含 `draw` 的資料夾），不需要任何替換。`install.py` 的額外價值在於元件檢查與 Firebase 設定注入。
 
 ### 專案維護與輸出
 
-- Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要**重跑 `python install.py`** 才會生效。
-- ⚠️ **不要用 sync-skills（純位元組複製的技能同步工具）同步這個 Skill。**安裝副本的 `SKILL.md` 已被 `install.py` 注入實際路徑，源檔留的是 `{{DRAW_SKILL_PATH}}`／`{{DRAW_SKILL_NAME}}` 占位符；位元組複製會把占位符蓋回四個副本、生圖指令直接失效，而且 hash 比對會顯示「全部一致」，完全看不出來。這個 Skill 的更新路徑只有 `install.py` 一條。
+- Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要重跑 `python install.py`（或用位元組複製的同步工具）才會生效。
+- **生圖技能的路徑是執行時解析的，不是安裝時注入的。**`SKILL.md` 從自己所在的技能目錄找名稱含 `draw` 的資料夾，所以四家副本可以是同一份 bytes，`sync-skills` 這類純位元組複製的同步工具也能用。2026-08-01 以前的做法是安裝時把路徑寫死進副本，那會讓四份副本互不相同、也都不等於源檔——同步工具一跑就把占位符蓋回去、生圖失效。
+- ⚠️ **例外：有設定 Firebase 的話仍然只能用 `install.py`。**`install.py` 會把你的 Firebase 金鑰注入副本的 `references/firebase-config.md`，那份就不再等於源檔了；此時位元組複製會把金鑰洗掉。沒設定 Firebase（占位符原封不動）就沒有這個問題。
 - 每份生成的簡報請放在 `output/<簡報英文短名>/`，例如 `output/ai-course/`；`output/` 是本機產出，不納入版本控制。
 - `.env`、Firebase 服務帳戶憑證與其他 API 金鑰均不可提交。GitHub 或 Firebase 的建立、部署與安全規則調整，請在需要時另行明確執行。
 

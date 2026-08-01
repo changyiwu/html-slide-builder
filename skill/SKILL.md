@@ -109,19 +109,53 @@ description: |
 - **生成數量**：預設為 `ceil(投影片總數 / 4)` 張，最少 1 張、最多 6 張；可依實際章節數微調。先列出「背景名稱 → 套用頁碼 → prompt」對照表，再生成。
 - **套用方式**：同一個背景群組內的每個 `<section>` 都要寫入相同的 `data-background-image` 路徑。
 
+<a id="resolve-draw"></a>
+
+#### 先解析本機的生圖技能（每次工作階段做一次，結果沿用）
+
+各家 Agent 的生圖技能安裝名不同（`claude-draw`／`codex-draw`／`opencode-draw`／`antigravity-draw`），所以**不要寫死路徑**，執行時現找：本技能所在資料夾的**上一層**就是這個 Agent 的全域技能目錄，在裡面找名稱含 `draw` 的資料夾。
+
+```powershell
+# $skillRoot = 本技能（html-slide-builder）的資料夾路徑
+$skillsDir = Split-Path $skillRoot -Parent
+$drawDir   = Get-ChildItem $skillsDir -Directory -EA SilentlyContinue |
+             Where-Object { $_.Name -match 'draw' } | Select-Object -First 1
+$drawName  = if ($drawDir) { $drawDir.Name }
+$py        = if ($drawDir) { @(Get-ChildItem $drawDir.FullName -Recurse -Filter '*.py' -File) }
+$drawScript = @(
+  $py | Where-Object { $_.Name -eq 'draw.py' }        # 優先 draw.py
+  $py | Where-Object { $_.Name -match 'draw' }        # 其次檔名含 draw
+  $py                                                  # 最後任意 .py
+) | Select-Object -First 1
+"生圖技能：$drawName　腳本：$($drawScript.FullName)"
+```
+
+```bash
+# POSIX 等價寫法
+skills_dir="$(dirname "$skill_root")"
+draw_dir="$(find "$skills_dir" -maxdepth 1 -type d -name '*draw*' | head -1)"
+draw_script="$(find "$draw_dir" -name 'draw.py' -o -name '*draw*.py' -o -name '*.py' 2>/dev/null | head -1)"
+```
+
+三種結果，分別怎麼走：
+
+| 解析結果 | 怎麼做 |
+|---------|--------|
+| 找到資料夾 ＋ 找到腳本 | 用下面的 CLI 指令，`<生圖腳本路徑>` 填 `$drawScript` |
+| 找到資料夾、**沒有腳本** | 該 Agent 的生圖是內建的（例如 Codex 的 Image Gen）。**不要跑 CLI**，改為載入 `$drawName` 技能、以自然語言要求同樣規格 |
+| **找不到任何 draw 資料夾** | 停下來告訴使用者：這個 Agent 還沒安裝生圖技能，底圖與圖標功能無法使用 |
+
 先依背景群組呼叫 draw 技能；不同群組可平行執行：
 
 ```bash
-python "{{DRAW_SKILL_PATH}}" \
+python "<生圖腳本路徑>" \
   "<底圖 prompt>" \
   --size 1536x1024 --quality low \
   --name <background-slug> \
   --outdir "<專案目錄>/images"
 ```
 
-> 上面那串路徑由 install.py 在安裝時依「這個 Agent 自己的生圖技能」注入。
->
-> 本機生圖技能：`{{DRAW_SKILL_NAME}}`。**若上面的路徑顯示「沒有 CLI 腳本」**（例如 Codex 的內建 Image Gen），就不要跑那段指令，改為載入該生圖技能、以自然語言要求同樣規格：1536×1024 橫式、深暗霓虹配色、無文字；生成後把圖片複製到 `<專案目錄>/images/<background-slug>.png` 再往下走。
+> 走自然語言那條路時，規格是：1536×1024 橫式、深暗霓虹配色、無文字；生成後把圖片複製到 `<專案目錄>/images/<background-slug>.png` 再往下走。
 
 **底圖 Prompt 設計原則：**
 - 深暗色系（deep navy、dark space、#0d1117 背景）
@@ -157,15 +191,17 @@ python "{{DRAW_SKILL_PATH}}" \
 
 只有使用者明確要求圖標、生圖圖示、圖示組，或指定不用 emoji 時，才執行下列生成與去背流程。
 
+`<生圖腳本路徑>` 同樣來自[前面的生圖技能解析](#resolve-draw)：
+
 ```bash
-python "{{DRAW_SKILL_PATH}}" \
+python "<生圖腳本路徑>" \
   "A clean icon sheet with exactly N flat neon icons in a single horizontal row on pure dark navy (#0d1117) background. [逐一描述每個圖標，從左到右]. Each icon large, bold, centered in equal column, no text." \
   --size 1536x1024 --quality low \
   --name icon_sheet \
   --outdir "<專案目錄>/images"
 ```
 
-先用讀檔／看圖工具確認圖標總表品質，再裁切。（沒有 CLI 腳本的 Agent 同上，改用 `{{DRAW_SKILL_NAME}}` 以自然語言生成圖標總表。）
+先用讀檔／看圖工具確認圖標總表品質，再裁切。（沒有 CLI 腳本的 Agent 同上，改用解析到的生圖技能以自然語言生成圖標總表。）
 
 ### 4-3 裁切 + 去背
 
