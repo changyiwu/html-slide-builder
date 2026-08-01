@@ -15,7 +15,7 @@
 - [x] 階段一：Skill 初始化與規則調整（每頁 AI 生成底圖、emoji 預設視覺提示、卡片 hover 微互動）
 - [x] 階段二：移除上游 Firebase demo 硬編碼 key，建立 fork 並推送 `origin/main`
 - [x] 階段三：專案更名為 `html-slide-builder`，`install.py` 改為四個 Agent 通用（各自偵測生圖技能）
-- [ ] 階段四：執行 `python install.py` 實際安裝到本機四個 Agent 並驗證
+- [x] 階段四：執行 `python install.py` 實際安裝到本機四個 Agent 並驗證
 - [ ] 階段五：以一份無敏感資訊的教材測試輸出到 `output/<英文短名>/`
 - [ ] 階段六：製作新簡報時依內容套用 `[HOVER]`，以實際瀏覽器預覽確認效果
 
@@ -62,3 +62,4 @@ html-slide-builder/
 - 2026-07-24：專案藍圖改用標準範本格式（補上路線圖 checklist、資料夾結構與同步層級表）；L3 路徑由不存在的「專案駕駛艙.md」更正為 `html-slide-builder/專案工作流程.md`。
 - 2026-08-01：專案更名 `claude-html-slide-builder` → `html-slide-builder`（本地資料夾、GitHub repo、Obsidian 筆記資料夾同步更名），因為 Skill 要做成四個 Agent 通用。
 - 2026-08-01：`install.py` 改為跨 Agent 安裝器（仿 sync-skills 的四家目錄慣例）：偵測本機已裝的 Agent、可選安裝目標、**各 Agent 各自偵測自己的生圖技能**並注入各自的 `SKILL.md`；無 CLI 腳本的 Agent（Codex 內建 Image Gen）改走自然語言生圖。複製時排除 `__pycache__`，單一 Agent 失敗不再中斷其他 Agent。已用假 HOME 做過完整乾跑驗證。
+- 2026-08-01：已實際安裝到 Claude Code／Codex／OpenCode／Antigravity 四個全域技能目錄；逐份核對 frontmatter、UTF-8 BOM 與遞迴 SHA-256 manifest，四份皆與 `skill/` 完全一致（4 個檔案，manifest digest `D493755F...F07EC`）。
