@@ -42,8 +42,8 @@
 
 ```bash
 # 1. Clone 此 repo
-git clone https://github.com/mathruffian-dot/claude-html-slide-builder.git
-cd claude-html-slide-builder
+git clone https://github.com/changyiwu/html-slide-builder.git
+cd html-slide-builder
 
 # 2. 執行安裝腳本（會自動檢查元件並引導設定）
 python install.py

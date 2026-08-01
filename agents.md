@@ -1,4 +1,4 @@
-# claude-html-slide-builder（專案藍圖）
+# html-slide-builder（專案藍圖）
 
 > 本檔為跨 Agent 通用的專案藍圖（AGENTS.md 開放標準）。任何 Agent 的每個 session 都應先讀本檔＋`handoff.md`。
 
@@ -21,7 +21,7 @@
 ## 資料夾結構
 
 ```
-claude-html-slide-builder/
+html-slide-builder/
 ├─ skill/
 │  ├─ SKILL.md                              # Skill 觸發條件與簡報製作流程
 │  ├─ references/reveal-template.md         # Reveal.js HTML 範本與元件樣式
@@ -41,8 +41,8 @@ claude-html-slide-builder/
 | 層級 | 平台 | 位置 | 讀取時機 |
 |------|------|------|---------|
 | L1 | 本地（GDrive） | `agents.md`＋`handoff.md` | 每個 session |
-| L2 | GitHub | https://github.com/changyiwu/claude-html-slide-builder （公開） | 指定時 |
-| L3 | Obsidian | `claude-html-slide-builder/專案工作流程.md` | 有需要時 |
+| L2 | GitHub | https://github.com/changyiwu/html-slide-builder （公開） | 指定時 |
+| L3 | Obsidian | `html-slide-builder/專案工作流程.md` | 有需要時 |
 
 ## 工作約定
 
@@ -57,4 +57,5 @@ claude-html-slide-builder/
 
 ## 最近進度
 
-- 2026-07-24：專案藍圖改用標準範本格式（補上路線圖 checklist、資料夾結構與同步層級表）；L3 路徑由不存在的「專案駕駛艙.md」更正為 `claude-html-slide-builder/專案工作流程.md`。
+- 2026-07-24：專案藍圖改用標準範本格式（補上路線圖 checklist、資料夾結構與同步層級表）；L3 路徑由不存在的「專案駕駛艙.md」更正為 `html-slide-builder/專案工作流程.md`。
+- 2026-08-01：專案更名 `claude-html-slide-builder` → `html-slide-builder`（本地資料夾、GitHub repo、Obsidian 筆記資料夾同步更名），因為 Skill 要做成四個 Agent 通用。
