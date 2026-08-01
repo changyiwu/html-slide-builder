@@ -1,8 +1,9 @@
-# 🎨 html-slide-builder — Claude Code Skill
+# 🎨 html-slide-builder — 跨 Agent 通用 Skill
 
 > 給定任何主題或內容，自動生成完整的 **Reveal.js HTML 互動簡報** 並部署至 GitHub Pages。
+> 支援 **Claude Code / Codex / OpenCode / Antigravity** 四個 Agent，一次安裝到本機已有的每一個。
 
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-orange?logo=anthropic)](https://claude.ai/code)
+[![Agent Skill](https://img.shields.io/badge/Agent-Skill-orange)](https://agents.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -38,6 +39,17 @@
 | [GitHub CLI (gh)](https://cli.github.com/) | GitHub Pages 部署 | ⚠️ 自動部署需要 |
 | Firebase 專案 | 互動元件資料庫 | ⚠️ 互動功能需要（使用自己的專案） |
 
+### 支援的 Agent 與安裝位置
+
+| Agent | 全域技能目錄 | 偵測依據 |
+|-------|-------------|---------|
+| Claude Code | `~/.claude/skills/html-slide-builder/` | `~/.claude/` 存在 |
+| Codex | `~/.agents/skills/html-slide-builder/` | `~/.agents/` 存在 |
+| OpenCode | `~/.config/opencode/skills/html-slide-builder/` | `~/.config/opencode/` 存在 |
+| Antigravity | `~/.gemini/config/skills/html-slide-builder/` | `~/.gemini/config/` 存在 |
+
+設定根目錄不存在＝這台沒裝那個工具，安裝腳本會自動略過，不會建垃圾目錄。四家的安裝名一律是 `html-slide-builder`，不加 agent 前綴。
+
 ### 一鍵安裝
 
 ```bash
@@ -50,22 +62,28 @@ python install.py
 ```
 
 安裝腳本會：
+- ✅ 偵測本機裝了哪幾個 Agent，讓你選擇要裝到哪幾個（預設全部）
 - ✅ 逐項檢查必要元件，列出缺少的項目
 - ✅ 詢問是否自動安裝 Pillow
-- ✅ 可選擇設定自己的 Firebase 專案
-- ✅ 將 Skill 複製到 `~/.claude/skills/html-slide-builder/`
-- ✅ 自動偵測 draw skill 路徑並注入設定
+- ✅ 可選擇設定自己的 Firebase 專案（一次注入所有安裝副本）
+- ✅ **各 Agent 分別偵測自己的生圖技能**（`claude-draw`／`codex-draw`／`opencode-draw`／`antigravity-draw` 等名稱含 `draw` 的技能），把各自的腳本路徑注入各自那份 `SKILL.md`
+- ✅ 生圖技能沒有 CLI 腳本時（例如 Codex 的內建 Image Gen），改在 `SKILL.md` 標示以自然語言生圖
 
 ### 手動安裝
 
 ```bash
-# 複製 skill 目錄到 Claude skills 資料夾
+# 複製 skill 目錄到你要用的 Agent 技能資料夾（有裝哪個就複製哪個）
 cp -r skill/ ~/.claude/skills/html-slide-builder/
+cp -r skill/ ~/.agents/skills/html-slide-builder/
+cp -r skill/ ~/.config/opencode/skills/html-slide-builder/
+cp -r skill/ ~/.gemini/config/skills/html-slide-builder/
 ```
+
+手動安裝不會替換 `SKILL.md` 裡的 `{{DRAW_SKILL_PATH}}` 與 `{{DRAW_SKILL_NAME}}` 占位符，請自行填入該 Agent 的生圖技能名稱與腳本路徑。
 
 ### 專案維護與輸出
 
-- Skill 原始碼位於 `skill/`；安裝後才會複製到本機的 Claude skills 目錄。
+- Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要重跑 `python install.py`（或用 sync-skills 技能）才會生效。
 - 每份生成的簡報請放在 `output/<簡報英文短名>/`，例如 `output/ai-course/`；`output/` 是本機產出，不納入版本控制。
 - `.env`、Firebase 服務帳戶憑證與其他 API 金鑰均不可提交。GitHub 或 Firebase 的建立、部署與安全規則調整，請在需要時另行明確執行。
 
@@ -73,7 +91,7 @@ cp -r skill/ ~/.claude/skills/html-slide-builder/
 
 ## 🚀 使用方式
 
-安裝後，在 Claude Code 對話中說：
+安裝後，在任一已安裝的 Agent（Claude Code／Codex／OpenCode／Antigravity）對話中說：
 
 ```
 幫我做一份產品提案的 HTML 互動簡報
@@ -86,7 +104,7 @@ cp -r skill/ ~/.claude/skills/html-slide-builder/
 # 也支援教材、會議內容、報告或任意主題
 ```
 
-Claude 會自動：
+Agent 會自動：
 1. 分析簡報需求與內容，列出投影片大綱（每頁均有 `[BG:<背景名稱>]`；emoji 為預設）
 2. **等你確認大綱後**才開始生成
 3. 為每一頁套用 AI 生成底圖（依內容分群重用），並在合適位置使用 emoji；只有明確要求時才生成圖標、嵌入文字雲或視覺化滑桿
@@ -98,7 +116,7 @@ Claude 會自動：
 
 ```
 html-slide-builder/
-├── SKILL.md                    # 主要指令（Claude 讀取）
+├── SKILL.md                    # 主要指令（Agent 讀取）
 ├── scripts/
 │   └── remove_bg.py            # PIL 圖標去背腳本
 └── references/
@@ -149,7 +167,7 @@ html-slide-builder/
 
 | 環境 | 版本 |
 |------|------|
-| Claude Code | 最新版 |
+| Agent | Claude Code／Codex／OpenCode／Antigravity（任一，最新版） |
 | Python | 3.8+ |
 | OS | Windows / macOS / Linux |
 
