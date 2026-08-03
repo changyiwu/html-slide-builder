@@ -45,6 +45,18 @@ html-slide-builder/
 | L2 | GitHub | https://github.com/changyiwu/html-slide-builder （公開） | 指定時 |
 | L3 | Obsidian | `html-slide-builder/專案工作流程.md` | 有需要時 |
 
+## 三個檔案的職責（依「時效性」分家，不是依「詳細程度」）
+
+| 檔案 | 時效 | 寫入方式 | 放什麼 |
+|------|------|---------|--------|
+| `handoff.md` | **只對下一個 session 有效**，過期即丟 | 每次收工整份重寫 | 做到哪、下一步、**這次**的暫時 workaround |
+| `agents.md`（本檔） | **長期有效**，每個 session 都適用 | 只有規則本身變了才改 | 目標、路線圖、常設規則、結構 |
+| Obsidian／`git log` | **歷史**：發生過什麼、為什麼 | 只增不刪 | 決策紀錄、踩坑完整版、逐次進度 |
+
+驗收標準：**`handoff.md` 整份刪掉，不應損失任何長期資訊**——會的話代表該升級進本檔卻沒升級。
+
+**本檔不要出現的東西**：❌ `## 最近進度`／逐次工作紀錄、❌ 決策理由與踩坑完整版。2026-08-03 移除了 `## 最近進度`，內容逐條比對後已在 L3 筆記的〈🗓️ 最近更動紀錄〉——**是主動移除，不是遺漏，不要補回來**。踩過的坑只把**結論**收斂成一條祈使句寫進〈工作約定〉，原因留 L3。
+
 ## 工作約定
 
 - 任何 Agent、任何電腦：**開工先讀 `handoff.md`，收工必更新 `handoff.md`**
@@ -56,10 +68,3 @@ html-slide-builder/
 - 不修改 Firebase 安全規則、不部署 GitHub Pages、不建立或連接 GitHub 儲存庫，除非使用者明確要求
 - 任何提交或推送前，先確認 Git 狀態、遠端分支與提交範圍；**不使用 force push**
 - Obsidian 專案筆記的建立或更新，不寫入 `02-知識庫/log.md`
-
-## 最近進度
-
-- 2026-07-24：專案藍圖改用標準範本格式（補上路線圖 checklist、資料夾結構與同步層級表）；L3 路徑由不存在的「專案駕駛艙.md」更正為 `html-slide-builder/專案工作流程.md`。
-- 2026-08-01：專案更名 `claude-html-slide-builder` → `html-slide-builder`（本地資料夾、GitHub repo、Obsidian 筆記資料夾同步更名），因為 Skill 要做成四個 Agent 通用。
-- 2026-08-01：`install.py` 改為跨 Agent 安裝器（仿 sync-skills 的四家目錄慣例）：偵測本機已裝的 Agent、可選安裝目標、**各 Agent 各自偵測自己的生圖技能**並注入各自的 `SKILL.md`；無 CLI 腳本的 Agent（Codex 內建 Image Gen）改走自然語言生圖。複製時排除 `__pycache__`，單一 Agent 失敗不再中斷其他 Agent。已用假 HOME 做過完整乾跑驗證。
-- 2026-08-01：已實際安裝到 Claude Code／Codex／OpenCode／Antigravity 四個全域技能目錄；逐份核對 frontmatter、UTF-8 BOM 與遞迴 SHA-256 manifest，四份皆與 `skill/` 完全一致（4 個檔案，manifest digest `D493755F...F07EC`）。
