@@ -68,3 +68,6 @@ html-slide-builder/
 - 不修改 Firebase 安全規則、不部署 GitHub Pages、不建立或連接 GitHub 儲存庫，除非使用者明確要求
 - 任何提交或推送前，先確認 Git 狀態、遠端分支與提交範圍；**不使用 force push**
 - Obsidian 專案筆記的建立或更新，不寫入 `02-知識庫/log.md`
+- **各 Agent 的生圖技能形態不同**：`claude-draw/draw.py`、`opencode-draw/draw.py`、`antigravity-draw/scripts/draw_openai.py`，而 **`codex-draw` 沒有 CLI 腳本**（走內建 Image Gen）。執行時解析必須處理「找到資料夾但沒有 `.py`」這種情況——`SKILL.md` 解析表格的第二列就是為它寫的
+- **`upstream` remote（`mathruffian-dot/claude-html-slide-builder`）已失效**，API 回 404；`gh` 指令不加 `--repo` 會誤打到 upstream
+- Firebase Web `apiKey` 是**公開的用戶端設定**（可放前端與版控）；真正的秘密是服務帳戶與私鑰
