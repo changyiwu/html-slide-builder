@@ -18,6 +18,8 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
 
 **專案需要開啟「匿名登入」**（Authentication → Sign-in method → Anonymous）。聽眾不會看到任何登入畫面，SDK 在背景取得一組臨時 uid，讓安全規則能分辨「誰寫的」。
 
+**若專案已開啟 App Check 的 Enforce，簡報也必須實作 App Check**（見下方區塊 A），否則所有讀寫會在安全規則之前就被擋下。
+
 **Firestore 路徑（子集合，不是扁平命名）：**
 
 ```
@@ -81,6 +83,8 @@ match /decks/{slug}/votes/{ballot} {
 ```html
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+  import { initializeAppCheck, ReCaptchaV3Provider }
+    from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
   import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
   import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
@@ -97,6 +101,11 @@ match /decks/{slug}/votes/{ballot} {
     appId: "{{FIREBASE_APP_ID}}"
   };
 
+  // reCAPTCHA v3 的 site key 是公開金鑰（對應的 secret key 只填在 Firebase
+  // Console）。APP_CHECK_HOSTS 必須與 reCAPTCHA 主控台註冊的網域一致。
+  const RECAPTCHA_SITE_KEY = "{{RECAPTCHA_SITE_KEY}}";
+  const APP_CHECK_HOSTS = ["{{APP_CHECK_HOST}}"];
+
   // 本機預覽時 API key 的 referrer 限制會擋掉請求（這是刻意的安全設定，
   // 不要為了方便去 GCP Console 放寬）。改跑離線示範模式，版面照樣看得到。
   const DEMO_MODE = ['localhost', '127.0.0.1', ''].includes(location.hostname);
@@ -106,6 +115,18 @@ match /decks/{slug}/votes/{ballot} {
 
   async function initFirebase() {
     const app = initializeApp(firebaseConfig);
+
+    // ⚠️ 必須在 getFirestore／getAuth 之前，否則最早幾個請求會不帶 token 發出去。
+    // 專案若已開啟 App Check 的 Enforce，那些請求會直接被擋（且錯誤看起來像規則問題）。
+    if (RECAPTCHA_SITE_KEY && APP_CHECK_HOSTS.includes(location.hostname)) {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(RECAPTCHA_SITE_KEY),
+        isTokenAutoRefreshEnabled: true
+      });
+    } else {
+      console.warn('App Check 未啟用：site key 未填或網域不在 APP_CHECK_HOSTS 內。');
+    }
+
     fdb = getFirestore(app);
     const cred = await signInAnonymously(getAuth(app));
     myUid = cred.user.uid;
@@ -114,6 +135,10 @@ match /decks/{slug}/votes/{ballot} {
   const ready = DEMO_MODE ? Promise.resolve() : initFirebase();
 </script>
 ```
+
+⚠️ **若使用的 Firebase 專案已開啟 App Check 的 Enforce，`RECAPTCHA_SITE_KEY` 就是必填**，不是選配。沒有 token 的請求會在安全規則之前就被擋掉，症狀是所有讀寫都 `PERMISSION_DENIED`——很容易誤判成規則沒部署好。判斷方式：瀏覽器 Console 若出現 App Check 相關警告，或請求回 403 而規則在 Playground 測起來是 allow，就是這個原因。
+
+簡報部署的網域也必須先註冊在 reCAPTCHA 主控台，否則換不到 token。同一個網域下的不同 repo（例如 `changyiwu.github.io/deck-a/` 與 `.../deck-b/`）共用同一組設定，不必逐一註冊。
 
 ## 區塊 B：即時文字雲
 

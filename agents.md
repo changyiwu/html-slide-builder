@@ -66,6 +66,7 @@ html-slide-builder/
 - **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes。**但若有設定 Firebase**，`install.py` 會把金鑰注入副本的 `references/firebase-config.md`，那份就不等於源檔了——這種情況只能用 `install.py`，位元組複製會洗掉金鑰。另外 **`install.py` 有 4 個 `input()`，在沒有 stdin 的 agent 環境會 `EOFError` 中斷**；那種情況改用位元組複製，但**複製前必須先確認四家副本的 `firebase-config.md` 仍是 `{{FIREBASE_*}}` 占位符**，複製後逐檔 hash 比對
 - **簡報互動元件的 Firestore 路徑一律用子集合 `decks/<slug>/wordcloud`、`decks/<slug>/votes`**，不要改回 `<slug>_wordcloud` 扁平命名。安全規則的路徑片段**只能是完整字面值或完整萬用字元**，寫不出 `match /{slug}_wordcloud/{doc}`——扁平命名等於每加一份簡報就要手動改規則並重新部署
 - **互動元件的安全規則正本在 `online-word-cloud/firestore.rules`，不在本 repo**（共用 Firebase 專案 `word-cloud-c0bfe`）。本 repo 的 `firebase-config.md` 只是**副本供參**；改動互動元件的資料結構時，必須同步改那份並由使用者執行 `firebase deploy --only firestore:rules`，否則寫入會被 Firestore 預設拒絕
+- **`word-cloud-c0bfe` 已開啟 App Check 的 Enforce**，所以互動元件**必須**實作 App Check，且 `initializeAppCheck()` 要排在 `getFirestore()`／`getAuth()` 之前。少了它，所有讀寫會在安全規則之前就被擋成 `PERMISSION_DENIED`——症狀會誤導成規則沒部署好。site key 與網域是公開設定，可向 `online-word-cloud/app.js` 的 `RECAPTCHA_SITE_KEY`／`APP_CHECK_HOSTS` 取用，但**不要硬編碼進 `skill/` 源檔**（重蹈上游 demo key 的覆轍），一律用 `{{RECAPTCHA_SITE_KEY}}`／`{{APP_CHECK_HOST}}` 占位符
 - 所有回應與文件使用繁體中文
 - 保留既有 README、Skill 指令、授權資訊與專案歷史；變更時採**最小範圍修改**
 - 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰、服務帳戶憑證或 Firebase 私密設定提交至 Git

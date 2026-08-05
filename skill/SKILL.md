@@ -288,7 +288,7 @@ for i, name in enumerate(icons):
 - 使用 `Reveal.on('slidechanged', e => { if (e.currentSlide?.id === '...') { /* 重繪 */ }})` 確保切頁後正確渲染
 - Firestore 路徑：`decks/<簡報slug>/wordcloud` / `decks/<簡報slug>/votes`（子集合，每份簡報獨立）
 - **文字雲與投票共用同一個 `<script type="module">`**：只能 `initializeApp()` 一次，兩個元件都放時務必合併（詳見 `firebase-config.md` 的區塊 A/B/C）
-- 需要匿名登入與對應的 Firestore 安全規則，兩者都在 `firebase-config.md` 有說明
+- 需要匿名登入、對應的 Firestore 安全規則，**專案若已開啟 App Check 的 Enforce 還要實作 App Check**（否則所有讀寫在規則之前就被擋），三者都在 `firebase-config.md` 有說明
 - 樣式：配合暗色主題，輸入框 `background: rgba(255,255,255,0.08)`
 
 ---
