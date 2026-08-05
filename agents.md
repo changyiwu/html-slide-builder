@@ -18,6 +18,8 @@
 - [x] 階段四：執行 `python install.py` 實際安裝到本機四個 Agent 並驗證
 - [ ] 階段五：以一份無敏感資訊的教材測試輸出到 `output/<英文短名>/`
 - [ ] 階段六：製作新簡報時依內容套用 `[HOVER]`，以實際瀏覽器預覽確認效果
+- [x] 階段七：Firebase 互動元件改子集合、共用 `word-cloud-c0bfe` 專案並部署安全規則
+- [ ] 階段八：實機驗證互動元件（推上 GitHub Pages，用手機實測文字雲與投票即時同步）
 
 ## 資料夾結構
 
@@ -26,7 +28,7 @@ html-slide-builder/
 ├─ skill/
 │  ├─ SKILL.md                              # Skill 觸發條件與簡報製作流程
 │  ├─ references/reveal-template.md         # Reveal.js HTML 範本與元件樣式
-│  ├─ references/firebase-config.md         # 文字雲與投票的 Firebase 片段（只留占位符）
+│  ├─ references/firebase-config.md         # 文字雲與投票的 Firebase 片段（占位符＋對應安全規則）
 │  └─ scripts/remove_bg.py                  # 圖標裁切後的去背工具
 ├─ install.py                               # 安裝程式
 ├─ output/                                  # 本機產出的簡報（.gitignore 排除）
@@ -61,7 +63,9 @@ html-slide-builder/
 
 - 任何 Agent、任何電腦：**開工先讀 `handoff.md`，收工必更新 `handoff.md`**
 - 修改共用檔案前先讀最新內容，避免覆蓋其他 Agent 的變更
-- **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes。**但若有設定 Firebase**，`install.py` 會把金鑰注入副本的 `references/firebase-config.md`，那份就不等於源檔了——這種情況只能用 `install.py`，位元組複製會洗掉金鑰
+- **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes。**但若有設定 Firebase**，`install.py` 會把金鑰注入副本的 `references/firebase-config.md`，那份就不等於源檔了——這種情況只能用 `install.py`，位元組複製會洗掉金鑰。另外 **`install.py` 有 4 個 `input()`，在沒有 stdin 的 agent 環境會 `EOFError` 中斷**；那種情況改用位元組複製，但**複製前必須先確認四家副本的 `firebase-config.md` 仍是 `{{FIREBASE_*}}` 占位符**，複製後逐檔 hash 比對
+- **簡報互動元件的 Firestore 路徑一律用子集合 `decks/<slug>/wordcloud`、`decks/<slug>/votes`**，不要改回 `<slug>_wordcloud` 扁平命名。安全規則的路徑片段**只能是完整字面值或完整萬用字元**，寫不出 `match /{slug}_wordcloud/{doc}`——扁平命名等於每加一份簡報就要手動改規則並重新部署
+- **互動元件的安全規則正本在 `online-word-cloud/firestore.rules`，不在本 repo**（共用 Firebase 專案 `word-cloud-c0bfe`）。本 repo 的 `firebase-config.md` 只是**副本供參**；改動互動元件的資料結構時，必須同步改那份並由使用者執行 `firebase deploy --only firestore:rules`，否則寫入會被 Firestore 預設拒絕
 - 所有回應與文件使用繁體中文
 - 保留既有 README、Skill 指令、授權資訊與專案歷史；變更時採**最小範圍修改**
 - 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰、服務帳戶憑證或 Firebase 私密設定提交至 Git
