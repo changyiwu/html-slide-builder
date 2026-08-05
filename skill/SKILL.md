@@ -87,7 +87,7 @@ description: |
 
 **命名規則：**
 - 專案目錄：kebab-case 英文（`ai-course`、`math-lesson`）
-- Firestore 集合：`<slug>_wordcloud`、`<slug>_poll`（避免不同簡報資料混用）
+- Firestore 路徑：`decks/<slug>/wordcloud`、`decks/<slug>/votes`（子集合，避免不同簡報資料混用）
 
 **調色盤（所有簡報統一使用）：**
 ```
@@ -286,7 +286,9 @@ for i, name in enumerate(icons):
 **通用原則：**
 - 互動 section 加 `id="slide-<slug>"`
 - 使用 `Reveal.on('slidechanged', e => { if (e.currentSlide?.id === '...') { /* 重繪 */ }})` 確保切頁後正確渲染
-- Firestore 集合：`<簡報slug>_wordcloud` / `<簡報slug>_poll`（每份簡報獨立集合）
+- Firestore 路徑：`decks/<簡報slug>/wordcloud` / `decks/<簡報slug>/votes`（子集合，每份簡報獨立）
+- **文字雲與投票共用同一個 `<script type="module">`**：只能 `initializeApp()` 一次，兩個元件都放時務必合併（詳見 `firebase-config.md` 的區塊 A/B/C）
+- 需要匿名登入與對應的 Firestore 安全規則，兩者都在 `firebase-config.md` 有說明
 - 樣式：配合暗色主題，輸入框 `background: rgba(255,255,255,0.08)`
 
 ---

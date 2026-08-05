@@ -16,14 +16,106 @@ const firebaseConfig = {
 請以自己的 Firebase 專案設定取代以上占位符；安裝程式也可以代為注入設定。
 SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
 
-**Firestore 集合命名規則：**
-- 文字雲：`<簡報slug>_wordcloud`（例：`ai_course_wordcloud`）
-- 投票：`<簡報slug>_poll_<頁碼>`
-- 每份新簡報用不同集合，避免跨場次資料污染
+**專案需要開啟「匿名登入」**（Authentication → Sign-in method → Anonymous）。聽眾不會看到任何登入畫面，SDK 在背景取得一組臨時 uid，讓安全規則能分辨「誰寫的」。
+
+**Firestore 路徑（子集合，不是扁平命名）：**
+
+```
+decks/<簡報slug>/wordcloud/<uid>_<詞>
+decks/<簡報slug>/votes/<uid>_<題號>
+```
+
+用子集合是因為**安全規則的路徑片段只能是完整字面值或完整萬用字元**，寫不出 `match /{slug}_wordcloud/{doc}` 這種部分比對。改成子集合後，`match /decks/{slug}/wordcloud/{entry}` 一條規則就涵蓋所有簡報，日後新增簡報**不必再改規則、不必再部署**。
+
+**文件 ID 固定為 `<uid>_<內容>`**：同一人重複送出只覆寫自己那份，天然防洗版；投票也因此變成一人一份文件，不會有多人搶寫同一份文件的熱點（單一文件持續寫入建議上限約每秒 1 次）。
+
+## 對應的安全規則
+
+必須先部署，否則所有寫入都會被 Firestore 預設拒絕：
+
+```js
+match /decks/{slug}/wordcloud/{entry} {
+  allow read: if request.auth != null;
+  allow create, update: if request.auth != null
+    && slug.size() <= 40
+    && request.resource.data.keys().hasOnly(['word', 'uid', 'created_at'])
+    && request.resource.data.word is string
+    && request.resource.data.word.size() > 0
+    && request.resource.data.word.size() <= 20
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.created_at == request.time
+    && request.resource.data.uid + '_' + request.resource.data.word == entry;
+  allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+}
+
+match /decks/{slug}/votes/{ballot} {
+  allow read: if request.auth != null;
+  allow create, update: if request.auth != null
+    && slug.size() <= 40
+    && request.resource.data.keys().hasOnly(['question', 'option', 'uid', 'updated_at'])
+    && request.resource.data.question is string
+    && request.resource.data.question.size() > 0
+    && request.resource.data.question.size() <= 40
+    && request.resource.data.option is string
+    && request.resource.data.option.size() > 0
+    && request.resource.data.option.size() <= 40
+    && request.resource.data.uid == request.auth.uid
+    && request.resource.data.updated_at == request.time
+    && request.resource.data.uid + '_' + request.resource.data.question == ballot;
+  allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+}
+```
+
+`hasOnly()` 與長度上限是防灌爆的關鍵——沒有它，任何人都能往單份文件塞到 1 MiB 上限。**修改時務必同步調整下方程式碼的長度檢查**，兩邊要一致。
 
 ---
 
-## 元件一：即時文字雲
+## ⚠️ 只能有一個 `<script type="module">`
+
+文字雲與投票**共用同一個 `initializeApp()` 與同一次匿名登入**。把下面的「共用開頭」放最前面，再把需要的元件區塊接在後面，全部裝在**同一個** `<script type="module">` 裡（放在 `</body>` 前）。沒用到的元件整段刪掉即可。
+
+分成兩個 module 各自 `initializeApp()` 會在設定有任何差異時炸 `app/duplicate-app`，也會多做一次匿名登入。
+
+## 區塊 A：共用開頭（必要）
+
+```html
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+  import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+  import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+  // ⚠️ 每份簡報換成自己的英文短名，與資料夾名一致
+  const DECK_SLUG = 'ai_course';
+
+  const firebaseConfig = {
+    apiKey: "{{FIREBASE_API_KEY}}",
+    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
+    projectId: "{{FIREBASE_PROJECT_ID}}",
+    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
+    messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
+    appId: "{{FIREBASE_APP_ID}}"
+  };
+
+  // 本機預覽時 API key 的 referrer 限制會擋掉請求（這是刻意的安全設定，
+  // 不要為了方便去 GCP Console 放寬）。改跑離線示範模式，版面照樣看得到。
+  const DEMO_MODE = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+
+  let fdb = null;
+  let myUid = 'demo-me';
+
+  async function initFirebase() {
+    const app = initializeApp(firebaseConfig);
+    fdb = getFirestore(app);
+    const cred = await signInAnonymously(getAuth(app));
+    myUid = cred.user.uid;
+  }
+
+  const ready = DEMO_MODE ? Promise.resolve() : initFirebase();
+</script>
+```
+
+## 區塊 B：即時文字雲
 
 需要的 CDN（加在 `<head>` 裡）：
 ```html
@@ -80,43 +172,39 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
 </section>
 ```
 
-### Firebase Module Script（放在 `</body>` 前）
+### 接在區塊 A 後面的程式碼
 
-```html
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-  import {
-    getFirestore, collection, addDoc, onSnapshot,
-    serverTimestamp, query, orderBy
-  } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
-
-  const firebaseConfig = {
-    apiKey: "{{FIREBASE_API_KEY}}",
-    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
-    projectId: "{{FIREBASE_PROJECT_ID}}",
-    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
-    messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
-    appId: "{{FIREBASE_APP_ID}}"
-  };
-  const app = initializeApp(firebaseConfig);
-  const fdb = getFirestore(app);
-  // ⚠️ 集合名稱：<簡報slug>_wordcloud
-  const wordsRef = collection(fdb, '<slug>_wordcloud');
-
+```js
+  const WC_MAX_LEN = 20;   // 與安全規則的 word.size() <= 20 一致
   const COLORS = ['#4fc3f7','#e8643a','#ffb74d','#81c784','#ce93d8','#80deea','#f48fb1'];
+  let wcCounts = {};   // { 詞: 幾個人說過 }
   let wcData = [];
 
-  window.wcSubmit = async function() {
+  window.wcSubmit = async function () {
     const input = document.getElementById('wc-input');
     const word = input.value.trim();
-    if (!word) return;
+    // '/' 不能出現在 Firestore 文件 ID；長度上限與安全規則對齊
+    if (!word || word.length > WC_MAX_LEN || word.includes('/')) return;
+
     const btn = document.getElementById('wc-btn');
     btn.disabled = true;
     try {
-      await addDoc(wordsRef, { word, created_at: serverTimestamp() });
+      if (DEMO_MODE) {
+        wcCounts[word] = (wcCounts[word] || 0) + 1;
+        wcRender();
+      } else {
+        await ready;
+        // 文件 ID = <uid>_<詞>：同一人重複送同一個詞只會覆寫自己那份
+        await setDoc(doc(fdb, 'decks', DECK_SLUG, 'wordcloud', `${myUid}_${word}`), {
+          word, uid: myUid, created_at: serverTimestamp()
+        });
+      }
       input.value = '';
-    } catch(e) { console.error(e); }
-    finally { btn.disabled = false; }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      btn.disabled = false;
+    }
   };
 
   document.getElementById('wc-input')?.addEventListener('keypress', e => {
@@ -124,18 +212,14 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
   });
   document.getElementById('wc-btn')?.addEventListener('click', window.wcSubmit);
 
-  onSnapshot(query(wordsRef, orderBy('created_at', 'asc')), snap => {
-    const words = [];
-    snap.forEach(doc => words.push(doc.data().word));
-    const counts = {};
-    words.forEach(w => counts[w] = (counts[w] || 0) + 1);
-    wcData = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  function wcRender() {
+    wcData = Object.entries(wcCounts).sort((a, b) => b[1] - a[1]);
+    const total = Object.values(wcCounts).reduce((a, b) => a + b, 0);
 
-    document.getElementById('wc-total').textContent = words.length;
+    document.getElementById('wc-total').textContent = total;
     document.getElementById('wc-unique').textContent = wcData.length;
 
-    const listEl = document.getElementById('wc-list');
-    listEl.innerHTML = wcData.slice(0, 12).map(([w, c]) =>
+    document.getElementById('wc-list').innerHTML = wcData.slice(0, 12).map(([w, c]) =>
       `<div style="display:flex;justify-content:space-between;padding:4px 0;
                    border-bottom:1px solid rgba(255,255,255,0.06);">
         <span>${w}</span><span style="color:var(--accent);font-weight:700;">${c}</span>
@@ -145,7 +229,24 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
     const empty = document.getElementById('wc-empty');
     if (empty) empty.style.display = wcData.length > 0 ? 'none' : '';
     drawWordCloud();
-  });
+  }
+
+  if (DEMO_MODE) {
+    wcCounts = { '示範詞': 5, '本機預覽': 3, '推上線才是真的': 2, 'Reveal': 1 };
+    wcRender();
+  } else {
+    ready.then(() => {
+      // 不加 orderBy：serverTimestamp() 在本地快照裡短暫為 null 會讓該筆被排除
+      onSnapshot(collection(fdb, 'decks', DECK_SLUG, 'wordcloud'), snap => {
+        wcCounts = {};
+        snap.forEach(d => {
+          const w = d.data().word;
+          wcCounts[w] = (wcCounts[w] || 0) + 1;   // 一個詞的權重 = 幾個人說過
+        });
+        wcRender();
+      });
+    });
+  }
 
   function drawWordCloud() {
     const canvas = document.getElementById('wc-canvas');
@@ -171,12 +272,9 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
   Reveal.on('slidechanged', e => {
     if (e.currentSlide?.id === 'slide-wordcloud') setTimeout(drawWordCloud, 150);
   });
-</script>
 ```
 
----
-
-## 元件二：單選投票
+## 區塊 C：單選投票
 
 ### Section HTML
 
@@ -192,40 +290,22 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
 </section>
 ```
 
-### Firebase Module Script
+### 接在區塊 A 後面的程式碼
 
-```html
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-  import {
-    getFirestore, doc, setDoc, onSnapshot,
-    serverTimestamp, getDoc
-  } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+```js
+  // ⚠️ 同一份簡報有多題投票時，每題換一個 QUESTION_ID（q1 / q2 / …），
+  //    並把下面的 DOM id 一併加上題號，避免兩題互相覆蓋。
+  const QUESTION_ID = 'q1';
 
-  const firebaseConfig = {
-    apiKey: "{{FIREBASE_API_KEY}}",
-    authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
-    projectId: "{{FIREBASE_PROJECT_ID}}",
-    storageBucket: "{{FIREBASE_STORAGE_BUCKET}}",
-    messagingSenderId: "{{FIREBASE_MESSAGING_SENDER_ID}}",
-    appId: "{{FIREBASE_APP_ID}}"
-  };
-  const app = initializeApp(firebaseConfig);
-  const fdb = getFirestore(app);
-
-  // 選項設定（根據實際題目修改）
   const OPTIONS = [
     { id: 'a', label: '選項 A' },
     { id: 'b', label: '選項 B' },
     { id: 'c', label: '選項 C' },
   ];
-  // ⚠️ 集合名稱：<簡報slug>_poll_<頁碼>
-  const pollRef = doc(fdb, '<slug>_poll', 'results');
 
-  const userId = 'user_' + Math.random().toString(36).slice(2, 9);
   let myVote = null;
+  let pollCounts = {};
 
-  // 渲染選項
   const container = document.getElementById('poll-options');
   OPTIONS.forEach(opt => {
     const btn = document.createElement('button');
@@ -236,8 +316,7 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
                      display:flex;align-items:center;justify-content:center;font-size:12px;"
               id="poll-check-${opt.id}"></span>
         <span style="flex:1;text-align:left;">${opt.label}</span>
-        <span id="poll-bar-wrap-${opt.id}"
-              style="flex:0 0 120px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+        <span style="flex:0 0 120px;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
           <div id="poll-bar-${opt.id}" style="height:100%;width:0;background:var(--accent2);border-radius:4px;transition:width 0.4s;"></div>
         </span>
         <span id="poll-pct-${opt.id}" style="flex:0 0 36px;text-align:right;font-size:0.75em;color:#888;">0%</span>
@@ -251,24 +330,26 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
   });
 
   async function vote(optId) {
+    const prev = myVote;
     myVote = optId;
-    const data = {};
-    data[`votes.${userId}`] = optId;
-    data.updated_at = serverTimestamp();
-    await setDoc(pollRef, data, { merge: true });
+    if (DEMO_MODE) {
+      if (prev) pollCounts[prev]--;
+      pollCounts[optId] = (pollCounts[optId] || 0) + 1;
+      pollRender();
+      return;
+    }
+    await ready;
+    // 一人一題一份文件：改投票是覆寫自己那份，不會多人搶寫同一份文件
+    await setDoc(doc(fdb, 'decks', DECK_SLUG, 'votes', `${myUid}_${QUESTION_ID}`), {
+      question: QUESTION_ID, option: optId, uid: myUid, updated_at: serverTimestamp()
+    });
   }
 
-  onSnapshot(pollRef, snap => {
-    const data = snap.data() || {};
-    const votes = data.votes || {};
-    const counts = {};
-    OPTIONS.forEach(o => counts[o.id] = 0);
-    Object.values(votes).forEach(v => { if (counts[v] !== undefined) counts[v]++; });
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
-
+  function pollRender() {
+    const total = Object.values(pollCounts).reduce((a, b) => a + b, 0);
     document.getElementById('poll-total').textContent = total;
     OPTIONS.forEach(opt => {
-      const pct = total > 0 ? Math.round((counts[opt.id] / total) * 100) : 0;
+      const pct = total > 0 ? Math.round(((pollCounts[opt.id] || 0) / total) * 100) : 0;
       document.getElementById(`poll-bar-${opt.id}`).style.width = pct + '%';
       document.getElementById(`poll-pct-${opt.id}`).textContent = pct + '%';
       const check = document.getElementById(`poll-check-${opt.id}`);
@@ -276,8 +357,30 @@ SDK 版本：`11.0.2`（CDN：`https://www.gstatic.com/firebasejs/11.0.2/`）
         check.textContent = '✓';
         check.style.background = 'var(--accent2)';
         check.style.borderColor = 'var(--accent2)';
+      } else {
+        check.textContent = '';
+        check.style.background = 'transparent';
+        check.style.borderColor = 'rgba(255,255,255,0.3)';
       }
     });
-  });
-</script>
+  }
+
+  if (DEMO_MODE) {
+    pollCounts = { a: 4, b: 7, c: 2 };
+    pollRender();
+  } else {
+    ready.then(() => {
+      onSnapshot(collection(fdb, 'decks', DECK_SLUG, 'votes'), snap => {
+        pollCounts = {};
+        OPTIONS.forEach(o => pollCounts[o.id] = 0);
+        snap.forEach(d => {
+          const v = d.data();
+          if (v.question === QUESTION_ID && pollCounts[v.option] !== undefined) {
+            pollCounts[v.option]++;
+          }
+        });
+        pollRender();
+      });
+    });
+  }
 ```
