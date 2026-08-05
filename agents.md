@@ -6,6 +6,8 @@
 
 一個跨 Agent 通用的 Skill（Claude Code／Codex／OpenCode／Antigravity 四家共用同一份、安裝名皆為 `html-slide-builder`），把任何主題或內容（教材、提案、活動、會議、報告）轉為 Reveal.js HTML 互動簡報。主要入口 `skill/SKILL.md`，安裝程式 `install.py`。本專案 fork 自上游，已移除上游的 Firebase demo 硬編碼 key。
 
+聽眾即時互動（文字雲、投票）**不在本專案範圍內**：改由 `interactive-web-builder` 專案的 `word-cloud-page`／`poll-page` 技能產生獨立互動頁，簡報只放一頁 QR Code 連過去。本專案因此完全不碰 Firebase。
+
 ## 關鍵時程
 
 <!-- 目前無固定時程 -->
@@ -19,7 +21,7 @@
 - [ ] 階段五：以一份無敏感資訊的教材測試輸出到 `output/<英文短名>/`
 - [ ] 階段六：製作新簡報時依內容套用 `[HOVER]`，以實際瀏覽器預覽確認效果
 - [x] 階段七：Firebase 互動元件改子集合、共用 `word-cloud-c0bfe` 專案並部署安全規則
-- [ ] 階段八：實機驗證互動元件（推上 GitHub Pages，用手機實測文字雲與投票即時同步）
+- [x] 階段八：互動元件全數移除，改由 `interactive-web-builder` 的 `word-cloud-page`／`poll-page` 技能產生獨立頁；本 Skill 只負責簡報與 QR Code 頁
 
 ## 資料夾結構
 
@@ -28,7 +30,6 @@ html-slide-builder/
 ├─ skill/
 │  ├─ SKILL.md                              # Skill 觸發條件與簡報製作流程
 │  ├─ references/reveal-template.md         # Reveal.js HTML 範本與元件樣式
-│  ├─ references/firebase-config.md         # 文字雲與投票的 Firebase 片段（占位符＋對應安全規則）
 │  └─ scripts/remove_bg.py                  # 圖標裁切後的去背工具
 ├─ install.py                               # 安裝程式
 ├─ output/                                  # 本機產出的簡報（.gitignore 排除）
@@ -63,16 +64,15 @@ html-slide-builder/
 
 - 任何 Agent、任何電腦：**開工先讀 `handoff.md`，收工必更新 `handoff.md`**
 - 修改共用檔案前先讀最新內容，避免覆蓋其他 Agent 的變更
-- **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes。**但若有設定 Firebase**，`install.py` 會把金鑰注入副本的 `references/firebase-config.md`，那份就不等於源檔了——這種情況只能用 `install.py`，位元組複製會洗掉金鑰。另外 **`install.py` 有 4 個 `input()`，在沒有 stdin 的 agent 環境會 `EOFError` 中斷**；那種情況改用位元組複製，但**複製前必須先確認四家副本的 `firebase-config.md` 仍是 `{{FIREBASE_*}}` 占位符**，複製後逐檔 hash 比對
-- **簡報互動元件的 Firestore 路徑一律用子集合 `decks/<slug>/wordcloud`、`decks/<slug>/votes`**，不要改回 `<slug>_wordcloud` 扁平命名。安全規則的路徑片段**只能是完整字面值或完整萬用字元**，寫不出 `match /{slug}_wordcloud/{doc}`——扁平命名等於每加一份簡報就要手動改規則並重新部署
-- **互動元件的安全規則正本在 `online-word-cloud/firestore.rules`，不在本 repo**（共用 Firebase 專案 `word-cloud-c0bfe`）。本 repo 的 `firebase-config.md` 只是**副本供參**；改動互動元件的資料結構時，必須同步改那份並由使用者執行 `firebase deploy --only firestore:rules`，否則寫入會被 Firestore 預設拒絕
-- **`word-cloud-c0bfe` 已開啟 App Check 的 Enforce**，所以互動元件**必須**實作 App Check，且 `initializeAppCheck()` 要排在 `getFirestore()`／`getAuth()` 之前。少了它，所有讀寫會在安全規則之前就被擋成 `PERMISSION_DENIED`——症狀會誤導成規則沒部署好。site key 與網域是公開設定，可向 `online-word-cloud/app.js` 的 `RECAPTCHA_SITE_KEY`／`APP_CHECK_HOSTS` 取用，但**不要硬編碼進 `skill/` 源檔**（重蹈上游 demo key 的覆轍），一律用 `{{RECAPTCHA_SITE_KEY}}`／`{{APP_CHECK_HOST}}` 占位符
+- **`skill/` 改完用 `python install.py` 或位元組複製的同步工具都可以**：生圖技能改為執行時解析（見〈設計決策〉），源檔不再有 `{{DRAW_*}}` 占位符，四家副本是同一份 bytes，安裝時也不再注入任何東西。**`install.py` 仍有 `input()`，在沒有 stdin 的 agent 環境會 `EOFError` 中斷**；那種情況改用位元組複製，複製後逐檔 hash 比對
+- **⚠️ 聽眾即時互動不要在本 Skill 裡重做。**文字雲與投票已於 2026-08-05 全數移除，改由 `interactive-web-builder` 的 `word-cloud-page`／`poll-page` 技能產生獨立互動頁，本 Skill 只加一頁 QR Code 連過去。理由：內嵌版要在同一份簡報 HTML 裡處理 Firebase 初始化、匿名登入、App Check 與安全規則，維護成本高，且那些設定的正本本來就在另一個 repo。**要改互動功能請去改那兩個技能，不要把 Firebase 程式碼搬回本專案**
+- **本專案不需要任何 Firebase 設定**：`install.py` 不再詢問、`skill/` 不再有 `{{FIREBASE_*}}`／`{{RECAPTCHA_*}}` 占位符。互動頁的資料庫設定、安全規則與 App Check 全在 `interactive-web-builder`
 - 所有回應與文件使用繁體中文
 - 保留既有 README、Skill 指令、授權資訊與專案歷史；變更時採**最小範圍修改**
-- 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰、服務帳戶憑證或 Firebase 私密設定提交至 Git
-- 不修改 Firebase 安全規則、不部署 GitHub Pages、不建立或連接 GitHub 儲存庫，除非使用者明確要求
+- 產出的簡報集中於 `output/<簡報英文短名>/`，不可把教材、API 金鑰或服務帳戶憑證提交至 Git
+- 不部署 GitHub Pages、不建立或連接 GitHub 儲存庫，除非使用者明確要求
 - 任何提交或推送前，先確認 Git 狀態、遠端分支與提交範圍；**不使用 force push**
 - Obsidian 專案筆記的建立或更新，不寫入 `02-知識庫/log.md`
 - **各 Agent 的生圖技能形態不同**：`claude-draw/draw.py`、`opencode-draw/draw.py`、`antigravity-draw/scripts/draw_openai.py`，而 **`codex-draw` 沒有 CLI 腳本**（走內建 Image Gen）。執行時解析必須處理「找到資料夾但沒有 `.py`」這種情況——`SKILL.md` 解析表格的第二列就是為它寫的
 - **`upstream` remote（`mathruffian-dot/claude-html-slide-builder`）已失效**，API 回 404；`gh` 指令不加 `--repo` 會誤打到 upstream
-- Firebase Web `apiKey` 是**公開的用戶端設定**（可放前端與版控）；真正的秘密是服務帳戶與私鑰
+

@@ -12,8 +12,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/night.css" />
-  <!-- 若有文字雲，加這行 -->
-  <!-- <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script> -->
+  <!-- 若有 QR Code 頁（連到文字雲／投票互動頁），加這行 -->
+  <!-- <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> -->
   <style>
     /* === 全域變數 === */
     :root {
@@ -193,7 +193,7 @@
   });
 </script>
 
-<!-- 若有互動元件，Firebase module script 加在這裡 -->
+<!-- 若有 QR Code 頁，產生 QR 的 script 加在這裡（見 SKILL.md 第 6 節） -->
 
 </body>
 </html>

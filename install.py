@@ -189,58 +189,11 @@ def check_requirements(agents: list) -> dict:
 
 
 # ──────────────────────────────────────────────
-# 4. Firebase 設定
-# ──────────────────────────────────────────────
-
-def configure_firebase():
-    head("【2】 Firebase 設定（互動元件：文字雲、投票）")
-    print(f"""
-  此 Skill 的互動元件需要 Firebase Firestore 資料庫。
-  文字雲與投票均為選用功能；如需使用，請提供自己的 Firebase 專案設定。
-  未設定時仍可安裝 Skill，只是不會啟用 Firebase 互動元件。
-""")
-    configure = input("  是否現在設定自己的 Firebase？[y/N]：").strip().lower()
-    if configure != "y":
-        info("略過 Firebase 設定；互動元件將保留設定占位符")
-        return None
-
-    print(f"\n  請至 Firebase Console → 專案設定 → 應用程式，複製 firebaseConfig 各欄位：\n")
-    config = {}
-    config["apiKey"]            = input("  apiKey：").strip()
-    config["authDomain"]        = input("  authDomain：").strip()
-    config["projectId"]         = input("  projectId：").strip()
-    config["storageBucket"]     = input("  storageBucket：").strip()
-    config["messagingSenderId"] = input("  messagingSenderId：").strip()
-    config["appId"]             = input("  appId：").strip()
-    if not all(config.values()):
-        warn("Firebase 設定不完整；互動元件將保留設定占位符")
-        return None
-    ok("已儲存自訂 Firebase 設定")
-    return config
-
-
-def inject_firebase_config(firebase_config_path: Path, fb: dict):
-    """將 Firebase 設定注入 firebase-config.md"""
-    content = firebase_config_path.read_text(encoding="utf-8")
-    replacements = {
-        "{{FIREBASE_API_KEY}}":              fb["apiKey"],
-        "{{FIREBASE_AUTH_DOMAIN}}":          fb["authDomain"],
-        "{{FIREBASE_PROJECT_ID}}":           fb["projectId"],
-        "{{FIREBASE_STORAGE_BUCKET}}":       fb["storageBucket"],
-        "{{FIREBASE_MESSAGING_SENDER_ID}}":  fb["messagingSenderId"],
-        "{{FIREBASE_APP_ID}}":               fb["appId"],
-    }
-    for old, new in replacements.items():
-        content = content.replace(old, new)
-    firebase_config_path.write_text(content, encoding="utf-8")
-
-
-# ──────────────────────────────────────────────
-# 5. 選擇要安裝到哪些 Agent
+# 4. 選擇要安裝到哪些 Agent
 # ──────────────────────────────────────────────
 
 def choose_targets(agents: list) -> list:
-    head("【3】 選擇安裝目標")
+    head("【2】 選擇安裝目標")
     print()
     for i, a in enumerate(agents, 1):
         state = "已安裝過" if (a["skills"] / SKILL_NAME).exists() else "尚未安裝"
@@ -268,7 +221,7 @@ def choose_targets(agents: list) -> list:
 # 7. 安裝
 # ──────────────────────────────────────────────
 
-def install_one(agent: dict, fb, overwrite_all):
+def install_one(agent: dict, overwrite_all):
     """安裝到單一 Agent。回傳 (是否成功, 更新後的 overwrite_all)。"""
     src = Path(__file__).parent / "skill"
     dst = agent["skills"] / SKILL_NAME
@@ -299,11 +252,6 @@ def install_one(agent: dict, fb, overwrite_all):
         err(f"{agent['tool']}：複製失敗，略過 —— {e}")
         return False, overwrite_all
 
-    # 注入 Firebase 設定
-    fb_cfg = dst / "references" / "firebase-config.md"
-    if fb and fb_cfg.exists():
-        inject_firebase_config(fb_cfg, fb)
-
     # 生圖技能不再注入——SKILL.md 執行時自行解析，四家副本因此是同一份 bytes
     detail = agent.get("draw_name") or "無生圖技能"
     if agent.get("draw_name") and not agent.get("draw_path"):
@@ -312,19 +260,14 @@ def install_one(agent: dict, fb, overwrite_all):
     return True, overwrite_all
 
 
-def install_skill(targets: list, fb) -> list:
-    head("【4】 安裝 Skill")
+def install_skill(targets: list) -> list:
+    head("【3】 安裝 Skill")
     installed = []
     overwrite_all = None
     for a in targets:
-        success, overwrite_all = install_one(a, fb, overwrite_all)
+        success, overwrite_all = install_one(a, overwrite_all)
         if success:
             installed.append(a)
-    if installed:
-        if fb:
-            info("Firebase 設定已注入所有安裝副本")
-        else:
-            info("未設定 Firebase；互動元件設定占位符已保留")
     return installed
 
 
@@ -371,15 +314,12 @@ def main():
             except Exception as e:
                 warn(f"Pillow 安裝失敗：{e}（圖標去背功能將無法使用）")
 
-    # 3. Firebase 設定
-    fb = configure_firebase()
-
-    # 4. 選擇目標並安裝
+    # 3. 選擇目標並安裝
     targets = choose_targets(agents)
-    installed = install_skill(targets, fb)
+    installed = install_skill(targets)
 
-    # 5. 結果報告
-    head("【5】 安裝完成報告")
+    # 4. 結果報告
+    head("【4】 安裝完成報告")
     if not installed:
         warn("安裝未完成（沒有任何目標被安裝）。")
         return

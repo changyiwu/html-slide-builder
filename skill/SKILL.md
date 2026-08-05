@@ -3,14 +3,15 @@ name: html-slide-builder
 description: |
   給定任何簡報需求或內容（主題、文字、提案、會議內容、活動資訊、報告、PDF、教材或口述需求），自動生成完整的 Reveal.js HTML 互動簡報並部署至 GitHub Pages。
 
-  提供五種視覺/互動強化：
+  提供四種視覺/互動強化：
   1. AI 生成背景底圖（draw 技能，data-background-image）
   2. 扁平化圖標（僅在使用者明確要求時，以 draw 技能 + PIL 裁切去背生成）
   3. CSS 微互動（卡片滑過發光／浮起、流程節點滑過輕微抖動）
-  4. Firebase 即時互動元件（文字雲、單選投票，Firestore 串接）
-  5. 滑桿視覺化演示（clip-path 揭露，適合前後對比內容）
+  4. 滑桿視覺化演示（clip-path 揭露，適合前後對比內容）
 
-  預設為每一頁簡報套用 AI 生成底圖，並依內容分群重用底圖；在標題、段落標籤、重點卡與流程節點等合適位置使用 emoji；為卡片與流程節點加入節制的 CSS 微互動。預設不得加入點擊按鈕、點擊後動畫、或左下角的互動操作提示。只有使用者明確要求圖標、生圖圖示、可點擊效果、文字雲或視覺化滑桿時，才可加入對應功能。
+  聽眾即時互動（文字雲、投票）不由本 Skill 產生，改用 `word-cloud-page`／`poll-page` 技能產生獨立頁面，簡報只放一頁 QR Code 連過去。
+
+  預設為每一頁簡報套用 AI 生成底圖，並依內容分群重用底圖；在標題、段落標籤、重點卡與流程節點等合適位置使用 emoji；為卡片與流程節點加入節制的 CSS 微互動。預設不得加入點擊按鈕、點擊後動畫、或左下角的互動操作提示。只有使用者明確要求圖標、生圖圖示、可點擊效果或視覺化滑桿時，才可加入對應功能。
 
   當使用者說「幫我做 HTML 簡報」「把這份內容轉成互動簡報」「做 Reveal.js 簡報」「做成投影片」「做一份提案／活動／課程簡報」，或提供任何內容並要求轉成簡報格式時，務必使用此 Skill。即使使用者未明確說「互動」或「HTML」，只要目的是產出可展示的簡報，也應觸發此 Skill。
 ---
@@ -53,8 +54,7 @@ description: |
 - emoji：預設用於合適的標題、標籤、卡片與流程節點
 - [HOVER] CSS 微互動：卡片滑過發光／浮起、流程節點滑過輕微抖動（預設啟用）
 - [ICON] 扁平化圖標（僅在使用者明確要求生圖圖標時）
-- [INTERACT:wordcloud] Firebase 即時文字雲（僅在使用者明確要求時）
-- [INTERACT:poll] Firebase 單選投票
+- [QR:<用途>] 連到外部互動頁的 QR Code 頁（文字雲／投票；僅在使用者明確要求時）
 - [VIZ] 滑桿視覺化演示（clip-path；僅在使用者明確要求時）
 
 請確認大綱，或說明要調整的地方。
@@ -62,15 +62,14 @@ description: |
 
 ### 功能標記的決策原則
 
-**預設規則：** 每一頁都必須帶有 `[BG:<背景名稱>]`，而且必須在輸出的 HTML 套用對應的 AI 生成底圖；相鄰或同一章節的投影片可以共用同一張底圖。預設以語意相符的 emoji 強化關鍵標籤與卡片，但不在每個句子或項目符號都堆疊 emoji；適合的卡片與流程節點套用 `[HOVER]` 微互動。不得因簡報題材自行加入 `[ICON]`、點擊按鈕／點擊動畫、`[INTERACT:wordcloud]` 或 `[VIZ]`，也不得在左下角加入「滑過」「點按」等操作提示。只有使用者明確提出生圖圖標、可點擊效果、文字雲、蒐集即時文字回應、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
+**預設規則：** 每一頁都必須帶有 `[BG:<背景名稱>]`，而且必須在輸出的 HTML 套用對應的 AI 生成底圖；相鄰或同一章節的投影片可以共用同一張底圖。預設以語意相符的 emoji 強化關鍵標籤與卡片，但不在每個句子或項目符號都堆疊 emoji；適合的卡片與流程節點套用 `[HOVER]` 微互動。不得因簡報題材自行加入 `[ICON]`、點擊按鈕／點擊動畫、`[QR:*]` 或 `[VIZ]`，也不得在左下角加入「滑過」「點按」等操作提示。只有使用者明確提出生圖圖標、可點擊效果、文字雲、投票、滑桿，或要求可拖曳的前後對比時，才能標記並生成；確認大綱時也要清楚列出這項使用者要求。
 
 | 標記 | 觸發條件 | 每份簡報目標數量 |
 |------|----------|-----------------|
 | [BG:<背景名稱>] | 每一頁；依章節、敘事轉折與視覺調性分群 | 每頁 1 個標記；通常每 3–5 頁共用 1 張底圖 |
 | [HOVER] | 重點卡、引用框、比較卡、行動卡與流程節點 | 預設啟用；每頁 1–4 個合適元素 |
 | [ICON] | 使用者明確要求生圖圖標、圖示組或不用 emoji 的客製圖示 | 預設 0 頁；有要求時 1–3 頁 |
-| [INTERACT:wordcloud] | 使用者明確要求文字雲或蒐集即時文字回應 | 預設 0 頁；有要求時 1 頁 |
-| [INTERACT:poll] | 概念確認、意見調查、前測/後測 | 0–1 頁 |
+| [QR:<用途>] | 使用者明確要求文字雲、投票或其他聽眾即時互動 | 預設 0 頁；每個互動頁 1 頁 |
 | [VIZ] | 使用者明確要求滑桿或可拖曳的對比演示 | 預設 0 頁；有要求時 0–1 頁 |
 
 ---
@@ -87,7 +86,6 @@ description: |
 
 **命名規則：**
 - 專案目錄：kebab-case 英文（`ai-course`、`math-lesson`）
-- Firestore 路徑：`decks/<slug>/wordcloud`、`decks/<slug>/votes`（子集合，避免不同簡報資料混用）
 
 **調色盤（所有簡報統一使用）：**
 ```
@@ -277,19 +275,49 @@ for i, name in enumerate(icons):
 
 ---
 
-## 6. 互動元件 [INTERACT]
+## 6. 聽眾即時互動 [QR]（文字雲／投票）
 
-文字雲屬於明確選用功能；沒有使用者要求時，不讀取、不嵌入文字雲程式碼，也不建立對應 Firestore 集合。啟用互動元件時，只能使用使用者自己的 Firebase 設定。
+**本 Skill 不再自行嵌入 Firebase 互動元件。**文字雲與投票改由專門的技能產生**獨立的互動頁**，簡報只放一頁 QR Code 連過去：
 
-詳見 `references/firebase-config.md`，含完整的文字雲和投票 HTML 程式碼片段。
+| 使用者要的 | 用哪個技能 | 產出 |
+|-----------|-----------|------|
+| 聽眾輸入字詞 → 即時文字雲 | `word-cloud-page` | 一份可獨立部署的 `.html` |
+| 聽眾選選項 → 即時圓餅／長條／折線圖 | `poll-page` | 一份可獨立部署的 `.html` |
 
-**通用原則：**
-- 互動 section 加 `id="slide-<slug>"`
-- 使用 `Reveal.on('slidechanged', e => { if (e.currentSlide?.id === '...') { /* 重繪 */ }})` 確保切頁後正確渲染
-- Firestore 路徑：`decks/<簡報slug>/wordcloud` / `decks/<簡報slug>/votes`（子集合，每份簡報獨立）
-- **文字雲與投票共用同一個 `<script type="module">`**：只能 `initializeApp()` 一次，兩個元件都放時務必合併（詳見 `firebase-config.md` 的區塊 A/B/C）
-- 需要匿名登入、對應的 Firestore 安全規則，**專案若已開啟 App Check 的 Enforce 還要實作 App Check**（否則所有讀寫在規則之前就被擋），三者都在 `firebase-config.md` 有說明
-- 樣式：配合暗色主題，輸入框 `background: rgba(255,255,255,0.08)`
+理由：簡報內嵌的版本要在同一份 HTML 裡處理 Firebase 初始化、匿名登入、App Check 與安全規則，維護成本高且容易與投影切換打架；獨立頁讓聽眾在自己手機上操作、講者投影同一個網址看結果，兩邊互不干擾。
+
+**流程：**
+
+1. 先呼叫對應技能產生互動頁，**輸出位置放在這份簡報的資料夾底下**（例如 `<簡報短名>/wordcloud.html`），跟簡報一起 commit、一起部署
+2. 部署完成後取得該頁正式網址
+3. 在簡報加一頁 `[QR:<用途>]`，用下面的片段把網址畫成 QR Code
+
+```html
+<!-- head 加這行 -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<section id="slide-qr-wordcloud">
+  <h2>一起來玩文字雲 ☁️</h2>
+  <p style="font-size:0.5em; color:#8b949e;">拿手機掃描，輸入你想到的關鍵字</p>
+  <div id="qr-wordcloud" style="width:300px; margin:0.6em auto; padding:16px; background:#fff; border-radius:16px;"></div>
+  <p style="font-size:0.38em; color:#666; word-break:break-all;" id="qr-wordcloud-url"></p>
+</section>
+
+<script>
+  // 白底留白就是 QR 的靜空區，掃描器需要它才認得出邊界
+  (function () {
+    const URL_ = 'https://<使用者名稱>.github.io/<repo>/<簡報短名>/wordcloud.html';
+    document.getElementById('qr-wordcloud-url').textContent = URL_;
+    window.addEventListener('DOMContentLoaded', () => {
+      const box = document.getElementById('qr-wordcloud');
+      if (typeof QRCode === 'undefined' || !box) return;
+      new QRCode(box, { text: URL_, width: 268, height: 268, correctLevel: QRCode.CorrectLevel.M });
+    });
+  })();
+</script>
+```
+
+同一份簡報要多個互動頁（例如一個文字雲、兩題投票）就重複這個流程，各自一個 id、各自一頁 QR。
 
 ---
 
@@ -357,7 +385,7 @@ Phase 1: 輸出大綱 → 等待確認 ← 必須停在這裡
 Phase 2: 生成 HTML 骨架
 Phase 3+4: 可平行（底圖生成 + 僅在要求圖標時才生成圖標）
 Phase 5: 為合適卡片與流程節點加入預設 CSS 微互動
-Phase 6: 僅在明確要求時，嵌入 Firebase 互動元件
+Phase 6: 僅在明確要求時，用 word-cloud-page／poll-page 技能產生互動頁，並加一頁 QR
 Phase 7: 僅在明確要求時，寫入 VIZ 滑桿
 Phase 8: 確認一切完成後才 push
 ```
@@ -369,5 +397,5 @@ Phase 8: 確認一切完成後才 push
 | 檔案 | 用途 |
 |------|------|
 | `references/reveal-template.md` | Reveal.js HTML 完整模板、CSS 元件庫 |
-| `references/firebase-config.md` | 文字雲、投票完整程式碼片段 |
+| `word-cloud-page`／`poll-page` 技能 | 聽眾即時互動頁（文字雲／投票），本 Skill 只放 QR 連過去 |
 | `scripts/remove_bg.py` | PIL 圖標去背腳本（對 images/icon_*.png 執行） |

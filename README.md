@@ -14,14 +14,14 @@
 |------|------|
 | 🖼 **AI 背景底圖** | 每一頁皆套用 draw skill 生成的霓虹暗色底圖；依內容分群，每 3–5 頁可共用一張 |
 | 😀 **emoji 與圖標** | 預設以 emoji 強化合適的標題與卡片；只有明確要求時才生成客製圖標 |
-| 💬 **即時互動元件** | Firebase Firestore 串接的文字雲（wordcloud2.js）與單選投票；文字雲需明確指定才加入 |
+| 💬 **聽眾即時互動** | 交給 `word-cloud-page`／`poll-page` 技能產生獨立互動頁，簡報只放一頁 QR Code 連過去 |
 | 🔀 **視覺化演示** | clip-path 滑桿揭露效果；需明確指定才加入 |
 | 🚀 **一鍵部署** | 自動 git init → GitHub 公開 repo → GitHub Pages |
 
 ## 📺 效果展示
 
 - **範例簡報**：[https://mathruffian-dot.github.io/html-vs-markdown/](https://mathruffian-dot.github.io/html-vs-markdown/)
-- 包含：文字雲互動、Markdown→HTML 滑桿演示、AI 生成底圖與圖標
+- 包含：Markdown→HTML 滑桿演示、AI 生成底圖與圖標
 
 ---
 
@@ -37,7 +37,6 @@
 | Draw Skill（gpt-image-2 生圖技能）| AI 生圖 | ✅ 每頁底圖需要；客製圖標僅在明確要求時生成 |
 | OpenAI API Key | gpt-image-2 生圖 | ✅ 每頁底圖需要；客製圖標僅在明確要求時生成 |
 | [GitHub CLI (gh)](https://cli.github.com/) | GitHub Pages 部署 | ⚠️ 自動部署需要 |
-| Firebase 專案 | 互動元件資料庫 | ⚠️ 互動功能需要（使用自己的專案） |
 
 ### 支援的 Agent 與安裝位置
 
@@ -65,9 +64,8 @@ python install.py
 - ✅ 偵測本機裝了哪幾個 Agent，讓你選擇要裝到哪幾個（預設全部）
 - ✅ 逐項檢查必要元件，列出缺少的項目
 - ✅ 詢問是否自動安裝 Pillow
-- ✅ 可選擇設定自己的 Firebase 專案（一次注入所有安裝副本）
-- ✅ **各 Agent 分別偵測自己的生圖技能**（`claude-draw`／`codex-draw`／`opencode-draw`／`antigravity-draw` 等名稱含 `draw` 的技能），把各自的腳本路徑注入各自那份 `SKILL.md`
-- ✅ 生圖技能沒有 CLI 腳本時（例如 Codex 的內建 Image Gen），改在 `SKILL.md` 標示以自然語言生圖
+- ✅ **各 Agent 分別偵測自己的生圖技能**（`claude-draw`／`codex-draw`／`opencode-draw`／`antigravity-draw` 等名稱含 `draw` 的技能）並在安裝報告中列出，**不會改寫副本內容**——路徑是 `SKILL.md` 執行時自行解析的，所以四家副本與源檔是同一份 bytes，用位元組複製的同步工具也不會壞
+- ✅ 生圖技能沒有 CLI 腳本時（例如 Codex 的內建 Image Gen），安裝報告會標示為「自然語言生圖」
 
 ### 手動安裝
 
@@ -79,15 +77,14 @@ cp -r skill/ ~/.config/opencode/skills/html-slide-builder/
 cp -r skill/ ~/.gemini/config/skills/html-slide-builder/
 ```
 
-手動安裝也可以——`SKILL.md` 會在執行時自行解析該 Agent 的生圖技能（找技能目錄下名稱含 `draw` 的資料夾），不需要任何替換。`install.py` 的額外價值在於元件檢查與 Firebase 設定注入。
+手動安裝也可以——`SKILL.md` 會在執行時自行解析該 Agent 的生圖技能（找技能目錄下名稱含 `draw` 的資料夾），不需要任何替換。`install.py` 的額外價值在於元件檢查。
 
 ### 專案維護與輸出
 
 - Skill 原始碼位於 `skill/`；安裝後才會複製到本機各 Agent 的技能目錄。改完原始檔要重跑 `python install.py`（或用位元組複製的同步工具）才會生效。
 - **生圖技能的路徑是執行時解析的，不是安裝時注入的。**`SKILL.md` 從自己所在的技能目錄找名稱含 `draw` 的資料夾，所以四家副本可以是同一份 bytes，`sync-skills` 這類純位元組複製的同步工具也能用。2026-08-01 以前的做法是安裝時把路徑寫死進副本，那會讓四份副本互不相同、也都不等於源檔——同步工具一跑就把占位符蓋回去、生圖失效。
-- ⚠️ **例外：有設定 Firebase 的話仍然只能用 `install.py`。**`install.py` 會把你的 Firebase 金鑰注入副本的 `references/firebase-config.md`，那份就不再等於源檔了；此時位元組複製會把金鑰洗掉。沒設定 Firebase（占位符原封不動）就沒有這個問題。
 - 每份生成的簡報請放在 `output/<簡報英文短名>/`，例如 `output/ai-course/`；`output/` 是本機產出，不納入版本控制。
-- `.env`、Firebase 服務帳戶憑證與其他 API 金鑰均不可提交。GitHub 或 Firebase 的建立、部署與安全規則調整，請在需要時另行明確執行。
+- `.env` 與其他 API 金鑰均不可提交。GitHub 的建立與部署請在需要時另行明確執行。
 
 ---
 
@@ -109,7 +106,7 @@ cp -r skill/ ~/.gemini/config/skills/html-slide-builder/
 Agent 會自動：
 1. 分析簡報需求與內容，列出投影片大綱（每頁均有 `[BG:<背景名稱>]`；emoji 為預設）
 2. **等你確認大綱後**才開始生成
-3. 為每一頁套用 AI 生成底圖（依內容分群重用），並在合適位置使用 emoji；只有明確要求時才生成圖標、嵌入文字雲或視覺化滑桿
+3. 為每一頁套用 AI 生成底圖（依內容分群重用），並在合適位置使用 emoji；只有明確要求時才生成圖標或視覺化滑桿
 4. 部署至 GitHub Pages 並回傳網址
 
 ---
@@ -122,21 +119,21 @@ html-slide-builder/
 ├── scripts/
 │   └── remove_bg.py            # PIL 圖標去背腳本
 └── references/
-    ├── reveal-template.md      # Reveal.js HTML 模板 + CSS 元件庫
-    └── firebase-config.md      # Firebase 互動元件程式碼（文字雲/投票）
+    └── reveal-template.md      # Reveal.js HTML 模板 + CSS 元件庫
 ```
 
 ---
 
-## ⚙️ Firebase 設定說明
+## 💬 聽眾即時互動（文字雲／投票）
 
-互動元件使用你自己的 Firebase 專案。安裝時可選擇輸入設定值；若略過，文字雲與投票的設定占位符會保留在安裝後的 Skill 中。
+**本 Skill 不產生互動元件。**需要聽眾用手機即時參與時，改用另外兩個技能產生**獨立的互動頁**，簡報只放一頁 QR Code 連過去：
 
-### 設定自己的 Firebase 專案
-1. 至 [Firebase Console](https://console.firebase.google.com/) 建立專案
-2. 建立 Firestore 資料庫（測試模式）
-3. 在「專案設定 → 一般」取得 `firebaseConfig`
-4. 安裝時選擇設定 Firebase，並輸入各欄位
+| 需求 | 技能 | 產出 |
+|------|------|------|
+| 輸入字詞 → 即時文字雲 | `word-cloud-page` | 一份可獨立部署的 `.html` |
+| 選選項 → 即時圓餅／長條／折線圖 | `poll-page` | 一份可獨立部署的 `.html` |
+
+互動頁與簡報放同一個資料夾、一起部署即可。Firebase 的設定、安全規則與 App Check 全部由那兩個技能負責，本 Skill 不再需要任何 Firebase 設定。
 
 ---
 
@@ -153,10 +150,9 @@ html-slide-builder/
 - **預設**：在標題、卡片、流程節點與短標籤使用語意相符的 emoji；避免在每個句子堆疊 emoji。
 - **明確要求才生成圖標**：一次生成「圖標總表」→ PIL 等分裁切 → 亮度閾值去背 → 嵌入 HTML 並搭配 `drop-shadow` 發光效果。
 
-### 即時文字雲 [INTERACT:wordcloud]
-- **非預設功能**：只有明確要求文字雲或蒐集即時文字回應時才加入。
-- `wordcloud2.js` 渲染，字級隨頻率縮放，微旋轉 30%
-- Firebase `onSnapshot` 即時更新，毫秒級同步
+### 互動頁 QR Code [QR]
+- **非預設功能**：只有明確要求文字雲、投票或聽眾即時參與時才加入。
+- 先用 `word-cloud-page`／`poll-page` 技能產生互動頁並部署，再加一頁把網址畫成 QR Code。
 
 ### 滑桿視覺化 [VIZ]
 - **非預設功能**：只有明確要求滑桿或可拖曳的前後對比時才加入。
@@ -177,7 +173,7 @@ html-slide-builder/
 
 ## 🤝 貢獻
 
-歡迎 PR 改進 SKILL.md 的指令品質、新增互動元件、或分享你用此 Skill 做出的簡報！
+歡迎 PR 改進 SKILL.md 的指令品質、擴充版型與視覺元件，或分享你用此 Skill 做出的簡報！
 
 ---
 
