@@ -3,7 +3,7 @@
 > 給定任何主題或內容，自動生成完整的 **Reveal.js HTML 互動簡報** 並部署至 GitHub Pages。
 > 支援 **Claude Code / Codex / OpenCode / Antigravity** 四個 Agent，一次安裝到本機已有的每一個。
 
-[![Agent Skill](https://img.shields.io/badge/Agent-Skill-orange)](https://agents.md)
+[![Agent Skill](https://img.shields.io/badge/Agent-Skill-orange)](https://AGENTS.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
